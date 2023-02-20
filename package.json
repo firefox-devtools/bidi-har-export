@@ -2,9 +2,9 @@
   "name": "bidi-har-export",
   "version": "0.0.1",
   "description": "Experimental helper to export HAR files from WebDriverBiDi network events",
-  "main": "har.js",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/juliandescottes/bidi-har-export/issues"
   },
-  "homepage": "https://github.com/juliandescottes/bidi-har-export#readme"
+  "homepage": "https://github.com/juliandescottes/bidi-har-export#readme",
+  "devDependencies": {
+    "jest": "^29.4.3",
+    "prettier": "2.7.1"
+  }
 }
