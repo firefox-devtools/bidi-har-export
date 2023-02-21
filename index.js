@@ -4,4 +4,11 @@
 
 const HarRecorder = require("./src/har-recorder.js");
 
+const EventsCollectionExporter = require("./src/adapters/events-collection-exporter.js");
+const SeleniumBiDiHarRecorder = require("./src/adapters/selenium-bidi-har-recorder.js");
+
 exports.HarRecorder = HarRecorder;
+exports.adapters = {
+  EventsCollectionExporter,
+  SeleniumBiDiHarRecorder,
+};
