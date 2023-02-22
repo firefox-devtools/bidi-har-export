@@ -13,6 +13,21 @@ class MockDriver {
     return this;
   }
 
+  async getCapabilities() {
+    return {
+      get: capability => {
+        switch (capability) {
+          case "browserName":
+            return "firefox";
+          case "browserVersion":
+            return "112.0a1";
+          default:
+            throw new Error("Unsupported capability: " + capability);
+        }
+      }
+    }
+  }
+
   get socket() {
     return Promise.resolve(this);
   }
@@ -70,10 +85,9 @@ test("SeleniumBiDiHarRecorder generates simple har export", async () => {
   ];
 
   const driver = new MockDriver();
-  const recorder = new adapters.SeleniumBiDiHarRecorder(driver, {
-    browser: "browser",
-    version: "version",
-    browsingContextIds: [contextId]
+  const recorder = new adapters.SeleniumBiDiHarRecorder({
+    browsingContextIds: [contextId],
+    driver,
   });
 
   await recorder.startRecording();

@@ -32,18 +32,18 @@ class EventsCollectionExporter {
   /**
    * @constructor
    *
-   * @param {Array<Object>} events
+   * @param {Object} options
+   * @param {Array<Object>} options.events
    *     The collection of events.
-   * @param {Object?} options
    * @param {string} options.browser
    *     Name of the browser for which we are recording the HAR
    * @param {string} options.version
    *     Version of the browser for which we are recording the HAR
    */
-  constructor(events, options = {}) {
-    this._events = events;
-    const { browser, version } = options;
+  constructor(options) {
+    const { browser, events, version } = options;
 
+    this._events = events;
     this._recorder = new HarRecorder({
       browser: browser || "firefox",
       version: version || "111.0a1",

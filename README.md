@@ -8,6 +8,7 @@ Experimental module to compile WebDriver BiDi network events as a HAR file. The 
 
 `HarRecorder` is a base class for recording HAR. The consumer is responsible for indicating the beginning and end of the recording by using the `startRecording` and `stopRecording` methods. During the recording the consumer should forward all the relevant BiDi events to the recorder. The useful events for HAR generation are:
 - network.beforeRequestSent
+
 - network.responseCompleted
 - browsingContext.domContentLoaded
 - browsingContext.load
@@ -61,13 +62,11 @@ const driver = await new Builder()
 const id = await driver.getWindowHandle();
 const browsingContext = await BrowsingContext(driver, { browsingContextId: id });
 
-// On top of the browser and version information also expected by the default
-// HarRecorder, the SeleniumBiDiHarRecorder also expects an array of
-// browsingContextIds, which will be used to know which browsing contexts
-// should be monitored.
-const harRecorder = new adapters.SeleniumBiDiHarRecorder(driver, {
-  browser: "Firefox",
-  version: "111.0a1",
+// The SeleniumBiDiHarRecorder expects a selenium driver object as well as an
+// array of browsing context ids which will be used to know which browsing
+// contexts should be monitored.
+const harRecorder = new adapters.SeleniumBiDiHarRecorder({
+  driver,
   browsingContextIds: [id],
 });
 
@@ -93,13 +92,14 @@ This exporter is available under the `adapters` namespace.
 ```javascript
 const { adapters } = require('bidi-har-export');
 
-// Here `events` should be an array of network.beforeRequestSent,
+// Here `bidiEvents` should be an array of network.beforeRequestSent,
 // network.responseCompleted, browsingContext.domContentLoaded and
 // browsingContext.load events. The array does not have to be in chronological
 // order, the exporter will attempt to sort the events based on the timestamp
 // included in each event.
-const exporter = new adapters.EventsCollectionExporter(events, {
+const exporter = new adapters.EventsCollectionExporter({
   browser: "Firefox",
+  events: bidiEvents,
   version: "111.0a1",
 });
 const harExport = exporter.exportAsHar();
