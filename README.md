@@ -7,8 +7,8 @@ Experimental module to compile WebDriver BiDi network events as a HAR file. The 
 ### HarRecorder
 
 `HarRecorder` is a base class for recording HAR. The consumer is responsible for indicating the beginning and end of the recording by using the `startRecording` and `stopRecording` methods. During the recording the consumer should forward all the relevant BiDi events to the recorder. The useful events for HAR generation are:
-- network.beforeRequestSent
 
+- network.beforeRequestSent
 - network.responseCompleted
 - browsingContext.domContentLoaded
 - browsingContext.load
