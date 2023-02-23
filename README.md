@@ -44,7 +44,7 @@ const harRecord = harRecorder.stopRecording();
 
 ### SeleniumBiDiHarRecorder
 
-The `SeleniumBiDiHarRecorder` can be used with a selenium node driver in order to facilitate a recording. This recorder will take care of subscribing and unsubscribing to the necessary event, so that the consumer only has to start and stop the recording.
+The `SeleniumBiDiHarRecorder` can be used with the [JavaScript binding for Selenium](https://www.selenium.dev/selenium/docs/api/javascript/) in order to facilitate a recording. This recorder will take care of subscribing and unsubscribing to the necessary event, so that the consumer only has to start and stop the recording.
 
 This recorder is available under the `adapters` namespace.
 
@@ -62,7 +62,7 @@ const driver = await new Builder()
 const id = await driver.getWindowHandle();
 const browsingContext = await BrowsingContext(driver, { browsingContextId: id });
 
-// The SeleniumBiDiHarRecorder expects a selenium driver object as well as an
+// The SeleniumBiDiHarRecorder expects a Selenium driver object as well as an
 // array of browsing context ids which will be used to know which browsing
 // contexts should be monitored.
 const harRecorder = new adapters.SeleniumBiDiHarRecorder({

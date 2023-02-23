@@ -15,7 +15,7 @@ class SeleniumBiDiHarRecorder {
    *
    * @param {Object} options
    * @param {Object} options.driver
-   *     The selenium driver
+   *     The Selenium driver
    * @param {Array<string>} options.browsingContextIds
    *     The array of browsing context ids for which we should monitor network
    *     events.
