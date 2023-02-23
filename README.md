@@ -13,7 +13,7 @@ Experimental module to compile WebDriver BiDi network events as a HAR file. The 
 - browsingContext.domContentLoaded
 - browsingContext.load
 
-The recorder will not handle subscribing or unsubscribing to those events. For selenium users, the `SeleniumBiDiHarRecorder` can be used to facilitate the process.
+The recorder will not handle subscribing or unsubscribing to those events. For Selenium users, the `SeleniumBiDiHarRecorder` can be used to facilitate the process.
 
 ```javascript
 const { HarRecorder } = require("bidi-har-export");
