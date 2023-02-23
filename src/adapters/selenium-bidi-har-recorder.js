@@ -13,35 +13,33 @@ class SeleniumBiDiHarRecorder {
   /**
    * @constructor
    *
-   * @param {Object} driver
-   *     The selenium driver
    * @param {Object} options
-   * @param {string} options.browser
-   *     Name of the browser for which we are recording the HAR
+   * @param {Object} options.driver
+   *     The Selenium driver
    * @param {Array<string>} options.browsingContextIds
    *     The array of browsing context ids for which we should monitor network
    *     events.
-   * @param {string} options.version
-   *     Version of the browser for which we are recording the HAR
    */
-  constructor(driver, options) {
-    this._driver = driver;
-    const { browser, browsingContextIds, version } = options;
+  constructor(options) {
+    const { browsingContextIds, driver } = options;
 
     this._browsingContextIds = browsingContextIds;
-    this._onMessage = this._onMessage.bind(this);
+    this._driver = driver;
 
-    // XXX: This is currently hardcoded but should be provided by the caller.
-    this._recorder = new HarRecorder({
-      browser: "firefox",
-      version: "111.0a1",
-    });
+    this._onMessage = this._onMessage.bind(this);
   }
 
   /**
    * Start the BiDi HAR recorder.
    */
   async startRecording() {
+    const capabilities = await this._driver.getCapabilities();
+
+    this._recorder = new HarRecorder({
+      browser: capabilities.get("browserName"),
+      version: capabilities.get("browserVersion"),
+    });
+
     this.bidi = await this._driver.getBidi();
 
     await this.bidi.subscribe(

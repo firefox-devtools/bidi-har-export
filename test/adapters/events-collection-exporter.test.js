@@ -34,8 +34,9 @@ test("EventsCollectionExporter generates simple har export", () => {
 
   for (const { name, events } of testCases) {
     console.log("Test case: " + name);
-    const exporter = new adapters.EventsCollectionExporter(events, {
+    const exporter = new adapters.EventsCollectionExporter({
       browser: "browser",
+      events,
       version: "version",
     });
     const harExport = exporter.exportAsHar();
