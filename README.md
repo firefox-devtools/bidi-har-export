@@ -2,6 +2,10 @@
 
 Experimental module to compile WebDriver BiDi network events as a HAR file. The WebDriver BiDi network events are currently only available in Firefox 110 or newer.
 
+## Warning
+
+This module is meant for experimenting with HAR file generation based on WebDriver BiDi network events. It is not meant for widespread use, it was only tested with Firefox and might break as the WebDriver BiDi specification gets updated.
+
 ## Examples
 
 ### HarRecorder
