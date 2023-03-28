@@ -4,6 +4,38 @@
 
 const HAR_VERSION = "1.2";
 
+/**
+ * Polyfill for Array.prototype.findLast which is not available on older Node
+ * versions.
+ *
+ * Find the last item of the array which matches the provided predicate. Will
+ * return undefined if no match is found.
+ *
+ * @param {array} array
+ *     The array in which we want to find an element.
+ * @param {Function} predicate
+ *     A function to execute for each element in the array. It should return a
+ *     truthy value to indicate a matching element has been found.
+ * @return {*}
+ *     The found item or undefined.
+ */
+function findLast(array, predicate) {
+  // If findLast is available, use it directly.
+  if (array.findLast) {
+    return array.findLast(predicate);
+  }
+
+  // Otherwise, loop in reverse order to find a match.
+  for (let i = array.length - 1; i >= 0; i--) {
+    const item = array[i];
+    if (predicate(array[i], i, array)) {
+      return item;
+    }
+  }
+
+  return undefined;
+}
+
 function parseQueryString(url) {
   try {
     const urlObject = new URL(url);
@@ -270,7 +302,8 @@ class HarRecorder {
       startedTime = -1;
 
     if (type === "load") {
-      const firstTiming = this.pageTimings.findLast(
+      const firstTiming = findLast(
+        this.pageTimings,
         (timing) => timing.contextId === context
       );
 
@@ -280,7 +313,8 @@ class HarRecorder {
       startedTime = firstTiming.startedTime;
       url = firstTiming.url;
     } else {
-      const firstRequest = this.networkEntries.findLast(
+      const firstRequest = findLast(
+        this.networkEntries,
         (entry) => entry.contextId === context && entry.request.url === url
       );
       if (!firstRequest) {
