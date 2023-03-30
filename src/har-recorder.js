@@ -313,10 +313,19 @@ class HarRecorder {
       startedTime = firstTiming.startedTime;
       url = firstTiming.url;
     } else {
-      const firstRequest = findLast(
+      let firstRequest = findLast(
         this.networkEntries,
         (entry) => entry.contextId === context && entry.request.url === url
       );
+
+      if (!firstRequest) {
+        // Alternatively settle on the previous
+        firstRequest = findLast(
+          this.networkEntries,
+          (entry) => entry.contextId === context && entry.response?.mimeType.startsWith("text/html")
+        );
+      }
+
       if (!firstRequest) {
         // Bail if we can't find any request matching this browsing context.
         return;
