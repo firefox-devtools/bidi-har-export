@@ -354,8 +354,10 @@ class HarRecorder {
         e.request.request === params.request.request &&
         e.request.redirectCount === params.request.redirectCount
     );
-    entry.request = params.request;
-    entry.response = params.response;
+    if (entry) {
+      entry.request = params.request;
+      entry.response = params.response;
+    }
   }
 }
 
