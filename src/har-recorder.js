@@ -315,7 +315,7 @@ class HarRecorder {
   }
 
   _onBeforeRequestSent(params) {
-    const id = params.request.request + params.request.redirectCount;
+    const id = params.request.request + params.redirectCount;
     const url = params.request.url;
 
     this._log(`Event "beforeRequestSent" for url: ${url} (id: ${id})`);
@@ -323,6 +323,7 @@ class HarRecorder {
       contextId: params.context,
       id,
       url,
+      redirectCount: params.redirectCount,
       request: params.request,
     });
   }
@@ -387,14 +388,14 @@ class HarRecorder {
   }
 
   _onResponseCompleted(params) {
-    const id = params.request.request + params.request.redirectCount;
+    const id = params.request.request + params.redirectCount;
     const url = params.request.url;
     this._log(`Event "responseCompleted" for url: ${url} (id: ${id})`);
 
     const entry = this.networkEntries.find(
       (e) =>
         e.request.request === params.request.request &&
-        e.request.redirectCount === params.request.redirectCount
+        e.redirectCount === params.redirectCount
     );
     if (entry) {
       entry.request = params.request;
