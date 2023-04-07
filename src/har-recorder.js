@@ -397,6 +397,18 @@ class HarRecorder {
         this._log(`Warning: Bailing out`);
         return;
       }
+
+      if (firstRequest.redirectCount > 0) {
+        const firstRequestWithRedirects = findLast(
+          this.networkEntries,
+          (entry) =>
+            entry.request.request === firstRequest.request.request &&
+            entry.redirectCount == 0
+        );
+
+        firstRequest = firstRequestWithRedirects || firstRequest;
+      }
+
       const timings = firstRequest.request.timings;
       startedTime = timings.requestTime / 1000;
       firstRequest.isFirstRequest = true;
