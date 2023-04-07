@@ -37,15 +37,18 @@ class EventsCollectionExporter {
    *     The collection of events.
    * @param {string} options.browser
    *     Name of the browser for which we are recording the HAR
+   * @param {boolean} options.debugLogs
+   *     Should the HarRecorder provide additional logs for debugging.
    * @param {string} options.version
    *     Version of the browser for which we are recording the HAR
    */
   constructor(options) {
-    const { browser, events, version } = options;
+    const { browser, debugLogs, events, version } = options;
 
     this._events = events;
     this._recorder = new HarRecorder({
       browser: browser || "firefox",
+      debugLogs,
       version: version || "111.0a1",
     });
   }

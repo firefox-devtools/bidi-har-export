@@ -129,6 +129,17 @@ function toHAREntry(networkEntry) {
 }
 
 class HarRecorder {
+  /**
+   * @constructor
+   *
+   * @param {object} options
+   * @param {string} options.browser
+   *     Name of the browser for which we are recording the HAR
+   * @param {boolean} options.debugLogs
+   *     Should the HarRecorder provide additional logs for debugging.
+   * @param {string} options.version
+   *     Version of the browser for which we are recording the HAR
+   */
   constructor(options) {
     if (typeof options?.browser != "string") {
       throw new Error("Missing browser option");
@@ -139,6 +150,7 @@ class HarRecorder {
     }
 
     this._browser = options.browser;
+    this._debugLogs = options.debugLogs;
     this._version = options.version;
 
     this.networkEntries = [];
@@ -181,6 +193,7 @@ class HarRecorder {
     if (this._recording) {
       throw new Error("HAR recording already started");
     }
+    this._log("Start recording");
     this._recording = true;
   }
 
@@ -193,6 +206,7 @@ class HarRecorder {
       throw new Error("HAR recording not started");
     }
 
+    this._log("Stop recording");
     const harExport = this._exportAsHar();
 
     this.networkEntries = [];
@@ -218,8 +232,11 @@ class HarRecorder {
       },
     };
 
+    this._log("Building HAR");
+    this._log("Building pages");
     const pages = [];
     for (const pageTiming of this.pageTimings) {
+      this._log(`Process page timing with type: ${pageTiming.type} for url: ${pageTiming.url}`);
       // Check if there is already a page item in this recording for the same URL.
       // Also exclude page entries which already have a timing corresponding to
       // the type ("load", "domContentLoaded"...), which would indicate another
@@ -229,8 +246,10 @@ class HarRecorder {
       );
       if (!page) {
         // Create a base page record.
+        const id = `page_${pages.length + 1}`;
+        this._log(`Create page entry for url: ${pageTiming.url} with id: ${id}`);
         page = {
-          id: `page_${pages.length + 1}`,
+          id,
           pageTimings: {},
           startedDateTime: new Date(pageTiming.startedTime).toISOString(),
           title: pageTiming.url,
@@ -249,11 +268,10 @@ class HarRecorder {
     recording.log.pages = pages;
 
     for (const networkEntry of this.networkEntries) {
+      this._log(`Process network entry for url: ${networkEntry.url}`);
+
       if (!networkEntry.response) {
-        // Redirected requests are currently not emitting the responseStarted
-        // responseCompleted events because they are triggered out of order.
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1809210
-        // In the meantime, ignore entries with a missing `response`.
+        this._log(`Warning: Ignoring entry without response for url: ${networkEntry.url} (id: ${networkEntry.id})`);
         continue;
       }
 
@@ -262,6 +280,10 @@ class HarRecorder {
         if (page.startedTime <= entry.startedTime) {
           entry.pageref = page.id;
         }
+      }
+
+      if (entry.pageref) {
+        this._log(`Network entry for url: ${networkEntry.url} attached to page with id: ${entry.pageref}`);
       }
       delete entry.startedTime;
       recording.log.entries.push(entry);
@@ -286,11 +308,21 @@ class HarRecorder {
     return recording;
   }
 
+  _log(message) {
+    if (this._debugLogs) {
+      console.log(`[har-recorder] ${message}`);
+    }
+  }
+
   _onBeforeRequestSent(params) {
+    const id = params.request.request + params.request.redirectCount;
+    const url = params.request.url;
+
+    this._log(`Event "beforeRequestSent" for url: ${url} (id: ${id})`);
     this.networkEntries.push({
       contextId: params.context,
-      id: params.request.request + params.request.redirectCount,
-      url: params.request.url,
+      id,
+      url,
       request: params.request,
     });
   }
@@ -302,17 +334,20 @@ class HarRecorder {
       startedTime = -1;
 
     if (type === "load") {
+      this._log(`Event "load" for url: ${url} (context id: ${context})`);
       const firstTiming = findLast(
         this.pageTimings,
         (timing) => timing.contextId === context
       );
 
       if (!firstTiming || firstTiming.type != "domContentLoaded") {
+        this._log(`Warning: "domContentLoaded" event not found for "load" for url: ${url} (context id: ${context})`);
         return;
       }
       startedTime = firstTiming.startedTime;
       url = firstTiming.url;
     } else {
+      this._log(`Event "domContentLoaded" for url: ${url} (context id: ${context})`);
       let firstRequest = findLast(
         this.networkEntries,
         (entry) => entry.contextId === context && entry.request.url === url
@@ -320,6 +355,7 @@ class HarRecorder {
 
       if (!firstRequest) {
         // Alternatively settle on the previous
+        this._log(`Warning: No request found for "domContentLoaded" using url: ${url} and context id: ${context}`);
         firstRequest = findLast(
           this.networkEntries,
           (entry) => entry.contextId === context && entry.response?.mimeType.startsWith("text/html")
@@ -328,6 +364,8 @@ class HarRecorder {
 
       if (!firstRequest) {
         // Bail if we can't find any request matching this browsing context.
+        this._log(`Warning: No request found for "domContentLoaded" using only context id: ${context}`);
+        this._log(`Warning: Bailing out`);
         return;
       }
       const timings = firstRequest.request.timings;
@@ -349,6 +387,10 @@ class HarRecorder {
   }
 
   _onResponseCompleted(params) {
+    const id = params.request.request + params.request.redirectCount;
+    const url = params.request.url;
+    this._log(`Event "responseCompleted" for url: ${url} (id: ${id})`);
+
     const entry = this.networkEntries.find(
       (e) =>
         e.request.request === params.request.request &&
@@ -357,6 +399,8 @@ class HarRecorder {
     if (entry) {
       entry.request = params.request;
       entry.response = params.response;
+    } else {
+      this._log(`Warning: no matching entry found for url: ${url} (id: ${id})`);
     }
   }
 }
