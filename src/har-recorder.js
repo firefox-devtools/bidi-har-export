@@ -236,7 +236,9 @@ class HarRecorder {
     this._log("Building pages");
     const pages = [];
     for (const pageTiming of this.pageTimings) {
-      this._log(`Process page timing with type: ${pageTiming.type} for url: ${pageTiming.url}`);
+      this._log(
+        `Process page timing with type: ${pageTiming.type} for url: ${pageTiming.url}`
+      );
       // Check if there is already a page item in this recording for the same URL.
       // Also exclude page entries which already have a timing corresponding to
       // the type ("load", "domContentLoaded"...), which would indicate another
@@ -247,7 +249,9 @@ class HarRecorder {
       if (!page) {
         // Create a base page record.
         const id = `page_${pages.length + 1}`;
-        this._log(`Create page entry for url: ${pageTiming.url} with id: ${id}`);
+        this._log(
+          `Create page entry for url: ${pageTiming.url} with id: ${id}`
+        );
         page = {
           id,
           pageTimings: {},
@@ -271,7 +275,9 @@ class HarRecorder {
       this._log(`Process network entry for url: ${networkEntry.url}`);
 
       if (!networkEntry.response) {
-        this._log(`Warning: Ignoring entry without response for url: ${networkEntry.url} (id: ${networkEntry.id})`);
+        this._log(
+          `Warning: Ignoring entry without response for url: ${networkEntry.url} (id: ${networkEntry.id})`
+        );
         continue;
       }
 
@@ -283,7 +289,9 @@ class HarRecorder {
       }
 
       if (entry.pageref) {
-        this._log(`Network entry for url: ${networkEntry.url} attached to page with id: ${entry.pageref}`);
+        this._log(
+          `Network entry for url: ${networkEntry.url} attached to page with id: ${entry.pageref}`
+        );
       }
       delete entry.startedTime;
       recording.log.entries.push(entry);
@@ -318,7 +326,9 @@ class HarRecorder {
     const id = params.request.request + "-" + params.redirectCount;
     const url = params.request.url;
 
-    this._log(`Event "beforeRequestSent" for url: ${this._shortUrl(url)} (id: ${id})`);
+    this._log(
+      `Event "beforeRequestSent" for url: ${this._shortUrl(url)} (id: ${id})`
+    );
     this.networkEntries.push({
       contextId: params.context,
       id,
@@ -335,20 +345,30 @@ class HarRecorder {
       startedTime = -1;
 
     if (type === "load") {
-      this._log(`Event "load" for url: ${this._shortUrl(url)} (context id: ${context})`);
+      this._log(
+        `Event "load" for url: ${this._shortUrl(url)} (context id: ${context})`
+      );
       const firstTiming = findLast(
         this.pageTimings,
         (timing) => timing.contextId === context
       );
 
       if (!firstTiming || firstTiming.type != "domContentLoaded") {
-        this._log(`Warning: "domContentLoaded" event not found for "load" for url: ${this._shortUrl(url)} (context id: ${context})`);
+        this._log(
+          `Warning: "domContentLoaded" event not found for "load" for url: ${this._shortUrl(
+            url
+          )} (context id: ${context})`
+        );
         return;
       }
       startedTime = firstTiming.startedTime;
       url = firstTiming.url;
     } else {
-      this._log(`Event "domContentLoaded" for url: ${this._shortUrl(url)} (context id: ${context})`);
+      this._log(
+        `Event "domContentLoaded" for url: ${this._shortUrl(
+          url
+        )} (context id: ${context})`
+      );
       let firstRequest = findLast(
         this.networkEntries,
         (entry) => entry.contextId === context && entry.request.url === url
@@ -356,16 +376,24 @@ class HarRecorder {
 
       if (!firstRequest) {
         // Alternatively settle on the previous
-        this._log(`Warning: No request found for "domContentLoaded" using url: ${this._shortUrl(url)} and context id: ${context}`);
+        this._log(
+          `Warning: No request found for "domContentLoaded" using url: ${this._shortUrl(
+            url
+          )} and context id: ${context}`
+        );
         firstRequest = findLast(
           this.networkEntries,
-          (entry) => entry.contextId === context && entry.response?.mimeType.startsWith("text/html")
+          (entry) =>
+            entry.contextId === context &&
+            entry.response?.mimeType.startsWith("text/html")
         );
       }
 
       if (!firstRequest) {
         // Bail if we can't find any request matching this browsing context.
-        this._log(`Warning: No request found for "domContentLoaded" using only context id: ${context}`);
+        this._log(
+          `Warning: No request found for "domContentLoaded" using only context id: ${context}`
+        );
         this._log(`Warning: Bailing out`);
         return;
       }
@@ -390,7 +418,9 @@ class HarRecorder {
   _onResponseCompleted(params) {
     const id = params.request.request + "-" + params.redirectCount;
     const url = params.request.url;
-    this._log(`Event "responseCompleted" for url: ${this._shortUrl(url)} (id: ${id})`);
+    this._log(
+      `Event "responseCompleted" for url: ${this._shortUrl(url)} (id: ${id})`
+    );
 
     const entry = this.networkEntries.find(
       (e) =>
@@ -401,7 +431,11 @@ class HarRecorder {
       entry.request = params.request;
       entry.response = params.response;
     } else {
-      this._log(`Warning: no matching entry found for url: ${this._shortUrl(url)} (id: ${id})`);
+      this._log(
+        `Warning: no matching entry found for url: ${this._shortUrl(
+          url
+        )} (id: ${id})`
+      );
     }
   }
 
