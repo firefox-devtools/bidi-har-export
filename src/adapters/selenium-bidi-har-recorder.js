@@ -13,17 +13,20 @@ class SeleniumBiDiHarRecorder {
   /**
    * @constructor
    *
-   * @param {Object} options
-   * @param {Object} options.driver
-   *     The Selenium driver
+   * @param {object} options
    * @param {Array<string>} options.browsingContextIds
    *     The array of browsing context ids for which we should monitor network
    *     events.
+   * @param {boolean} options.debugLogs
+   *     Should the HarRecorder provide additional logs for debugging.
+   * @param {object} options.driver
+   *     The Selenium driver
    */
   constructor(options) {
-    const { browsingContextIds, driver } = options;
+    const { browsingContextIds, debugLogs, driver } = options;
 
     this._browsingContextIds = browsingContextIds;
+    this._debugLogs = debugLogs || false;
     this._driver = driver;
 
     this._onMessage = this._onMessage.bind(this);
@@ -37,6 +40,7 @@ class SeleniumBiDiHarRecorder {
 
     this._recorder = new HarRecorder({
       browser: capabilities.get("browserName"),
+      debugLogs: this._debugLogs,
       version: capabilities.get("browserVersion"),
     });
 
