@@ -153,6 +153,10 @@ class HarRecorder {
     this._debugLogs = options.debugLogs;
     this._version = options.version;
 
+    // Initial and last page default data.
+    this._initialPageUrl = "(initial page - missing url)";
+    this._lastPageUrl = "(last page - missing url)";
+
     this.networkEntries = [];
     this.pageTimings = [];
   }
@@ -187,26 +191,42 @@ class HarRecorder {
 
   /**
    * Subscribe to log event
+   *
+   * @param {string} initialPageUrl
+   *     URL for the initial page. Optional.
    * @returns {Promise<void>}
    */
-  startRecording() {
+  startRecording(initialPageUrl) {
     if (this._recording) {
       throw new Error("HAR recording already started");
     }
     this._log("Start recording");
+
+    if (initialPageUrl) {
+      this._initialPageUrl = initialPageUrl;
+    }
+
     this._recording = true;
   }
 
   /**
    * Unsubscribe to log event
+   *
+   * @param {string} lastPageUrl
+   *     URL for the initial page. Optional.
    * @returns {Promise<void>}
    */
-  stopRecording() {
+  stopRecording(lastPageUrl) {
     if (!this._recording) {
       throw new Error("HAR recording not started");
     }
 
     this._log("Stop recording");
+
+    if (lastPageUrl) {
+      this._lastPageUrl = lastPageUrl;
+    }
+
     const harExport = this._exportAsHar();
 
     this.networkEntries = [];
@@ -214,6 +234,19 @@ class HarRecorder {
     this._recording = false;
 
     return harExport;
+  }
+
+  _createPageData(id, url, startedTime) {
+    return {
+      id,
+      pageTimings: {},
+      startedDateTime: new Date(startedTime).toISOString(),
+      title: url,
+      // startedTime and url are temporary properties, and will be deleted
+      // before generating the HAR.
+      startedTime: startedTime,
+      url: url,
+    };
   }
 
   _exportAsHar() {
@@ -252,21 +285,23 @@ class HarRecorder {
         this._log(
           `Create page entry for url: ${pageTiming.url} with id: ${id}`
         );
-        page = {
-          id,
-          pageTimings: {},
-          startedDateTime: new Date(pageTiming.startedTime).toISOString(),
-          title: pageTiming.url,
-          // startedTime and url are temporary properties, and will be deleted
-          // before generating the HAR.
-          startedTime: pageTiming.startedTime,
-          url: pageTiming.url,
-        };
+        page = this._createPageData(id, pageTiming.url, pageTiming.startedTime);
         pages.push(page);
       }
 
       // Add the timing, which is the relative time for either DOMContentLoaded or Load
       page.pageTimings[pageTiming.type] = pageTiming.relativeTime;
+    }
+
+    if (!pages.length && this.networkEntries.length) {
+      this._log(
+        `No page recorded, creating a dummy page for url: ${this._lastPageUrl}`
+      );
+      const firstRequest = this.networkEntries[0].request;
+      const startedTime = firstRequest.timings.requestTime / 1000;
+      pages.push(
+        this._createPageData("page_1", this._lastPageUrl, startedTime)
+      );
     }
 
     recording.log.pages = pages;
@@ -292,6 +327,19 @@ class HarRecorder {
         this._log(
           `Network entry for url: ${networkEntry.url} attached to page with id: ${entry.pageref}`
         );
+      } else {
+        this._log(
+          `Could not find a page matching entry: ${networkEntry.url}, creating dummy page for url: ${this._initialPageUrl}`
+        );
+        const firstRequest = this.networkEntries[0].request;
+        const startedTime = firstRequest.timings.requestTime / 1000;
+        const initialPageId = "page_0";
+        recording.log.pages.splice(
+          0,
+          0,
+          this._createPageData(initialPageId, this._initialPageUrl, startedTime)
+        );
+        entry.pageref = initialPageId;
       }
       delete entry.startedTime;
       recording.log.entries.push(entry);
@@ -452,7 +500,7 @@ class HarRecorder {
   }
 
   _shortUrl(url) {
-    if (!this._debugLogs || url.length <= 150) {
+    if (!this._debugLogs || !url || url.length <= 150) {
       return url;
     }
 

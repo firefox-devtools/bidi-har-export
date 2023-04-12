@@ -2,10 +2,12 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 const { requestHeaders, responseHeaders } = require('./common-resources');
 
+let gRequestId = 10;
+
 function getMockEvents(startTime, options = {}) {
   const { contextId = "context-1" } = options;
   const highResStartTime = startTime * 1000;
-
+  const requestId = (options.requestId || gRequestId++) + "";
   const beforeRequestSentEvent = {
     method: "network.beforeRequestSent",
     params: {
@@ -19,7 +21,7 @@ function getMockEvents(startTime, options = {}) {
         headers: requestHeaders,
         headersSize: 447,
         method: "GET",
-        request: "33",
+        request: requestId,
         timings: {
           originTime: 0,
           requestTime: highResStartTime + 50,
@@ -36,7 +38,7 @@ function getMockEvents(startTime, options = {}) {
           responseStart: 0,
           responseEnd: 0,
         },
-        url: "https://example.com/",
+        url: options.url || "https://example.com/",
         rawHeaders:
           "GET / HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/112.0\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nAccept-Encoding: gzip, deflate, br\r\nConnection: keep-alive\r\nUpgrade-Insecure-Requests: 1\r\nSec-Fetch-Dest: document\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-Site: none\r\nSec-Fetch-User: ?1\r\n\r\n",
       },
@@ -60,7 +62,7 @@ function getMockEvents(startTime, options = {}) {
         headers: requestHeaders,
         headersSize: 447,
         method: "GET",
-        request: "33",
+        request: requestId,
         timings: {
           originTime: 0,
           requestTime: highResStartTime + 50,
@@ -77,7 +79,7 @@ function getMockEvents(startTime, options = {}) {
           responseStart: highResStartTime + 800,
           responseEnd: highResStartTime + 900,
         },
-        url: "https://example.com/",
+        url: options.url || "https://example.com/",
         rawHeaders:
           "GET / HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/112.0\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nAccept-Encoding: gzip, deflate, br\r\nConnection: keep-alive\r\nUpgrade-Insecure-Requests: 1\r\nSec-Fetch-Dest: document\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-Site: none\r\nSec-Fetch-User: ?1\r\n\r\n",
       },
@@ -88,7 +90,7 @@ function getMockEvents(startTime, options = {}) {
           size: 1256,
         },
         headersSize: 392,
-        url: "https://example.com/",
+        url: options.url || "https://example.com/",
         bytesReceived: 1040,
         fromCache: false,
         protocol: "http/2",
@@ -104,7 +106,7 @@ function getMockEvents(startTime, options = {}) {
     method: "browsingContext.domContentLoaded",
     params: {
       context: contextId,
-      url: "https://example.com/",
+      url: options.url || "https://example.com/",
       timestamp: startTime + 5,
     },
   };
@@ -113,7 +115,7 @@ function getMockEvents(startTime, options = {}) {
     method: "browsingContext.load",
     params: {
       context: contextId,
-      url: "https://example.com/",
+      url: options.url || "https://example.com/",
       timestamp: startTime + 15,
     },
   };
