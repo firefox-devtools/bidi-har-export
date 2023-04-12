@@ -4,34 +4,22 @@
 const { HarRecorder } = require("..");
 const { getMockEvents } = require("./resources/mock-events");
 
-test("HarRecorder generates empty har export", () => {
-  const recorder = new HarRecorder({ browser: "browser", version: "version" });
-
-  recorder.startRecording();
-  const harExport = recorder.stopRecording();
-
-  expect(harExport).toBeDefined();
-  expect(harExport.log).toBeDefined();
-
-  expect(harExport.log.pages).toStrictEqual([]);
-  expect(harExport.log.entries).toStrictEqual([]);
-});
-
 test("HarRecorder generates a valid har export with redirects", () => {
   const recorder = new HarRecorder({ browser: "browser", version: "version" });
 
   recorder.startRecording();
 
+  const requestId = 33;
   const startTime = Date.now();
   const {
     beforeRequestSentEvent,
     domContentLoadedEvent,
     loadEvent,
     responseCompletedEvent,
-  } = getMockEvents(startTime);
+  } = getMockEvents(startTime, { requestId });
 
   // Get 2 additional events, starting 10 ms before the "main" events.
-  const redirectedEvents = getMockEvents(startTime - 10);
+  const redirectedEvents = getMockEvents(startTime - 10, { requestId });
   const redirectedUrl = redirectedEvents.beforeRequestSentEvent.params.request.url + "redirected";
   redirectedEvents.beforeRequestSentEvent.params.request.url = redirectedUrl;
   redirectedEvents.responseCompletedEvent.params.request.url = redirectedUrl;
