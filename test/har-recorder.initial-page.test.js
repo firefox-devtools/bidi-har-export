@@ -38,6 +38,10 @@ test("HarRecorder generates har export with default initial page", () => {
   expect(harExport.log.entries.length).toBe(2);
   expect(harExport.log.entries[0].pageref).toBe(harExport.log.pages[0].id);
   expect(harExport.log.entries[1].pageref).toBe(harExport.log.pages[1].id);
+  expect(harExport.log.pages[0].pageTimings.onContentLoad).toBeUndefined();
+  expect(harExport.log.pages[1].pageTimings.onContentLoad).toBeDefined();
+  expect(harExport.log.pages[0].pageTimings.onLoad).toBeUndefined();
+  expect(harExport.log.pages[1].pageTimings.onLoad).toBeDefined();
 });
 
 test("HarRecorder generates har export with provided initial page", () => {
@@ -76,4 +80,8 @@ test("HarRecorder generates har export with provided initial page", () => {
   expect(harExport.log.entries[0].pageref).toBe(harExport.log.pages[0].id);
   expect(harExport.log.pages[0].title).toBe(initialPageUrl);
   expect(harExport.log.entries[1].pageref).toBe(harExport.log.pages[1].id);
+  expect(harExport.log.pages[0].pageTimings.onContentLoad).toBeUndefined();
+  expect(harExport.log.pages[1].pageTimings.onContentLoad).toBeDefined();
+  expect(harExport.log.pages[0].pageTimings.onLoad).toBeUndefined();
+  expect(harExport.log.pages[1].pageTimings.onLoad).toBeDefined();
 });

@@ -26,6 +26,8 @@ test("HarRecorder generates har export with default last page", () => {
   expect(harExport.log.pages.length).toBe(1);
   expect(harExport.log.entries.length).toBe(1);
   expect(harExport.log.entries[0].pageref).toBe(harExport.log.pages[0].id);
+  expect(harExport.log.pages[0].pageTimings.onContentLoad).toBeUndefined();
+  expect(harExport.log.pages[0].pageTimings.onLoad).toBeUndefined();
 });
 
 test("HarRecorder generates har export with provided last page", () => {
@@ -52,4 +54,6 @@ test("HarRecorder generates har export with provided last page", () => {
   expect(harExport.log.entries.length).toBe(1);
   expect(harExport.log.entries[0].pageref).toBe(harExport.log.pages[0].id);
   expect(harExport.log.pages[0].title).toBe(lastPageUrl);
+  expect(harExport.log.pages[0].pageTimings.onContentLoad).toBeUndefined();
+  expect(harExport.log.pages[0].pageTimings.onLoad).toBeUndefined();
 });

@@ -347,8 +347,13 @@ class HarRecorder {
 
     for (const page of recording.log.pages) {
       // Rename timings
-      page.pageTimings.onContentLoad = page.pageTimings.domContentLoaded * 1;
-      page.pageTimings.onLoad = page.pageTimings.load * 1;
+      if (page.pageTimings.domContentLoaded) {
+        page.pageTimings.onContentLoad = page.pageTimings.domContentLoaded * 1;
+      }
+
+      if (page.pageTimings.load) {
+        page.pageTimings.onLoad = page.pageTimings.load * 1;
+      }
 
       // Delete temporary fields
       delete page.pageTimings.domContentLoaded;
