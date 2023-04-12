@@ -63,7 +63,8 @@ class SeleniumBiDiHarRecorder {
     this.ws = await this.bidi.socket;
     this.ws.on("message", this._onMessage);
 
-    this._recorder.startRecording();
+    const initialPageUrl = await this._getPageUrl();
+    this._recorder.startRecording(initialPageUrl);
   }
 
   /**
@@ -92,12 +93,35 @@ class SeleniumBiDiHarRecorder {
       this._browsingContextIds
     );
 
+    const lastPageUrl = await this._getPageUrl();
     try {
-      return this._recorder.stopRecording();
+      return this._recorder.stopRecording(lastPageUrl);
     } catch (e) {
       console.error("Failed to generate HAR recording", e.message);
       return null;
     }
+  }
+
+  async _getPageUrl() {
+    let pageUrl;
+    if (this._browsingContextIds.length === 1) {
+      try {
+        const browsingContextId = this._browsingContextIds[0];
+        const params = {
+          method: 'browsingContext.getTree',
+          params: {
+            root: browsingContextId,
+          },
+        }
+
+        const response = await this.bidi.send(params)
+        pageUrl = response.result.contexts[0].url;
+      } catch (e) {
+        // Could not fetch page url.
+      }
+    }
+
+    return pageUrl;
   }
 
   _onMessage(event) {
