@@ -4,127 +4,6 @@
 
 const HAR_VERSION = "1.2";
 
-/**
- * Polyfill for Array.prototype.findLast which is not available on older Node
- * versions.
- *
- * Find the last item of the array which matches the provided predicate. Will
- * return undefined if no match is found.
- *
- * @param {array} array
- *     The array in which we want to find an element.
- * @param {Function} predicate
- *     A function to execute for each element in the array. It should return a
- *     truthy value to indicate a matching element has been found.
- * @return {*}
- *     The found item or undefined.
- */
-function findLast(array, predicate) {
-  // If findLast is available, use it directly.
-  if (array.findLast) {
-    return array.findLast(predicate);
-  }
-
-  // Otherwise, loop in reverse order to find a match.
-  for (let i = array.length - 1; i >= 0; i--) {
-    const item = array[i];
-    if (predicate(array[i], i, array)) {
-      return item;
-    }
-  }
-
-  return undefined;
-}
-
-function parseQueryString(url) {
-  try {
-    const urlObject = new URL(url);
-    return [...urlObject.searchParams.entries()].map(([name, value]) => {
-      return { name, value };
-    });
-  } catch (e) {
-    console.error("Failed to parse query string for url", url);
-    console.error(e);
-    return [];
-  }
-}
-
-function toHAREntry(networkEntry) {
-  const harEntry = {};
-
-  // Most of the default values (eg "?" or -1 or []) are needed for cached
-  // responses which currently don't come with enough information.
-  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1806802
-  harEntry.request = {
-    bodySize: networkEntry.request.bodySize,
-    method: networkEntry.request.method,
-    url: networkEntry.request.url,
-    httpVersion: networkEntry.response.protocol || "?",
-    headers: networkEntry.request.headers,
-    cookies: networkEntry.request.cookies,
-    queryString: parseQueryString(networkEntry.request.url) || [],
-    headersSize: networkEntry.request.headersSize,
-  };
-
-  const timings = networkEntry.request.timings;
-  harEntry.startedTime = timings.requestTime / 1000;
-  harEntry.startedDateTime = new Date(harEntry.startedTime).toISOString();
-  harEntry.response = {
-    status: networkEntry.response.status || -1,
-    statusText: networkEntry.response.statusText || "?",
-    httpVersion: networkEntry.response.protocol || "?",
-    headers: networkEntry.response.headers || [],
-    cookies: [],
-    content: {
-      mimeType: networkEntry.response.mimeType || "?",
-      size: networkEntry.response.content.size,
-      encoding: "",
-      text: "",
-      comment: "",
-      compression: "",
-    },
-    redirectURL: "",
-    headersSize: networkEntry.response.headersSize,
-    bodySize: networkEntry.response.bytesReceived,
-  };
-
-  // XXX: Check where this comes from in devtools.
-  harEntry.cache = {};
-
-  // Convert from BiDi timings to HAR timings
-  harEntry.timings = {};
-
-  let last = timings.requestTime;
-  harEntry.timings.blocked = (timings.dnsStart - last) / 1000;
-
-  last = timings.dnsStart || last;
-  harEntry.timings.dns = (timings.dnsEnd - timings.dnsStart) / 1000;
-
-  last = timings.connectStart || last;
-  harEntry.timings.connect = (timings.connectEnd - last) / 1000;
-
-  last = timings.tlsStart || last;
-  harEntry.timings.ssl = (timings.tlsEnd - last) / 1000;
-
-  last = timings.tlsEnd || last;
-  harEntry.timings.send = (timings.requestStart - last) / 1000;
-
-  last = timings.requestStart || last;
-  harEntry.timings.wait = (timings.responseStart - last) / 1000;
-
-  last = timings.responseStart || last;
-  harEntry.timings.receive = (timings.responseEnd - last) / 1000;
-
-  let time = 0;
-  for (const key of Object.keys(harEntry.timings)) {
-    harEntry.timings[key] = Math.max(0, harEntry.timings[key]);
-    time += harEntry.timings[key];
-  }
-
-  harEntry.time = time;
-  return harEntry;
-}
-
 class HarRecorder {
   /**
    * @constructor
@@ -313,7 +192,7 @@ class HarRecorder {
         continue;
       }
 
-      const entry = toHAREntry(networkEntry);
+      const entry = this._toHAREntry(networkEntry);
       for (const page of recording.log.pages) {
         if (page.startedTime <= entry.startedTime) {
           entry.pageref = page.id;
@@ -366,6 +245,38 @@ class HarRecorder {
     return recording;
   }
 
+  /**
+   * Polyfill for Array.prototype.findLast which is not available on older Node
+   * versions.
+   *
+   * Find the last item of the array which matches the provided predicate. Will
+   * return undefined if no match is found.
+   *
+   * @param {array} array
+   *     The array in which we want to find an element.
+   * @param {Function} predicate
+   *     A function to execute for each element in the array. It should return a
+   *     truthy value to indicate a matching element has been found.
+   * @return {*}
+   *     The found item or undefined.
+   */
+  _findLast(array, predicate) {
+    // If findLast is available, use it directly.
+    if (array.findLast) {
+      return array.findLast(predicate);
+    }
+
+    // Otherwise, loop in reverse order to find a match.
+    for (let i = array.length - 1; i >= 0; i--) {
+      const item = array[i];
+      if (predicate(array[i], i, array)) {
+        return item;
+      }
+    }
+
+    return undefined;
+  }
+
   _log(message) {
     if (this._debugLogs) {
       console.log(`[har-recorder] ${message}`);
@@ -398,7 +309,7 @@ class HarRecorder {
       this._log(
         `Event "load" for url: ${this._shortUrl(url)} (context id: ${context})`
       );
-      const firstTiming = findLast(
+      const firstTiming = this._findLast(
         this.pageTimings,
         (timing) => timing.contextId === context
       );
@@ -419,7 +330,7 @@ class HarRecorder {
           url
         )} (context id: ${context})`
       );
-      let firstRequest = findLast(
+      let firstRequest = this._findLast(
         this.networkEntries,
         (entry) => entry.contextId === context && entry.request.url === url
       );
@@ -431,7 +342,7 @@ class HarRecorder {
             url
           )} and context id: ${context}`
         );
-        firstRequest = findLast(
+        firstRequest = this._findLast(
           this.networkEntries,
           (entry) =>
             entry.contextId === context &&
@@ -449,7 +360,7 @@ class HarRecorder {
       }
 
       if (firstRequest.redirectCount > 0) {
-        const firstRequestWithRedirects = findLast(
+        const firstRequestWithRedirects = this._findLast(
           this.networkEntries,
           (entry) =>
             entry.request.request === firstRequest.request.request &&
@@ -501,6 +412,19 @@ class HarRecorder {
     }
   }
 
+  _parseQueryString(url) {
+    try {
+      const urlObject = new URL(url);
+      return [...urlObject.searchParams.entries()].map(([name, value]) => {
+        return { name, value };
+      });
+    } catch (e) {
+      console.error("Failed to parse query string for url", url);
+      console.error(e);
+      return [];
+    }
+  }
+
   _shortUrl(url) {
     if (!this._debugLogs || !url || url.length <= 150) {
       return url;
@@ -509,6 +433,82 @@ class HarRecorder {
     let s1 = url.substring(0, 150 / 2);
     let s2 = url.substring(url.length - 150 / 2);
     return `${s1} ... ${s2}`;
+  }
+
+  _toHAREntry(networkEntry) {
+    const harEntry = {};
+
+    // Most of the default values (eg "?" or -1 or []) are needed for cached
+    // responses which currently don't come with enough information.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1806802
+    harEntry.request = {
+      bodySize: networkEntry.request.bodySize,
+      method: networkEntry.request.method,
+      url: networkEntry.request.url,
+      httpVersion: networkEntry.response.protocol || "?",
+      headers: networkEntry.request.headers,
+      cookies: networkEntry.request.cookies,
+      queryString: this._parseQueryString(networkEntry.request.url) || [],
+      headersSize: networkEntry.request.headersSize,
+    };
+
+    const timings = networkEntry.request.timings;
+    harEntry.startedTime = timings.requestTime / 1000;
+    harEntry.startedDateTime = new Date(harEntry.startedTime).toISOString();
+    harEntry.response = {
+      status: networkEntry.response.status || -1,
+      statusText: networkEntry.response.statusText || "?",
+      httpVersion: networkEntry.response.protocol || "?",
+      headers: networkEntry.response.headers || [],
+      cookies: [],
+      content: {
+        mimeType: networkEntry.response.mimeType || "?",
+        size: networkEntry.response.content.size,
+        encoding: "",
+        text: "",
+        comment: "",
+        compression: "",
+      },
+      redirectURL: "",
+      headersSize: networkEntry.response.headersSize,
+      bodySize: networkEntry.response.bytesReceived,
+    };
+
+    // XXX: Check where this comes from in devtools.
+    harEntry.cache = {};
+
+    // Convert from BiDi timings to HAR timings
+    harEntry.timings = {};
+
+    let last = timings.requestTime;
+    harEntry.timings.blocked = (timings.dnsStart - last) / 1000;
+
+    last = timings.dnsStart || last;
+    harEntry.timings.dns = (timings.dnsEnd - timings.dnsStart) / 1000;
+
+    last = timings.connectStart || last;
+    harEntry.timings.connect = (timings.connectEnd - last) / 1000;
+
+    last = timings.tlsStart || last;
+    harEntry.timings.ssl = (timings.tlsEnd - last) / 1000;
+
+    last = timings.tlsEnd || last;
+    harEntry.timings.send = (timings.requestStart - last) / 1000;
+
+    last = timings.requestStart || last;
+    harEntry.timings.wait = (timings.responseStart - last) / 1000;
+
+    last = timings.responseStart || last;
+    harEntry.timings.receive = (timings.responseEnd - last) / 1000;
+
+    let time = 0;
+    for (const key of Object.keys(harEntry.timings)) {
+      harEntry.timings[key] = Math.max(0, harEntry.timings[key]);
+      time += harEntry.timings[key];
+    }
+
+    harEntry.time = time;
+    return harEntry;
   }
 }
 
