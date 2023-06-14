@@ -40,10 +40,7 @@ function parseQueryString(url) {
   try {
     const urlObject = new URL(url);
     return [...urlObject.searchParams.entries()].map(([name, value]) => {
-      return {
-        name: decodeURIComponent(name),
-        value: decodeURIComponent(value),
-      };
+      return { name, value };
     });
   } catch (e) {
     console.error("Failed to parse query string for url", url);
