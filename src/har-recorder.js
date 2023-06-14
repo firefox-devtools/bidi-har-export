@@ -419,8 +419,10 @@ class HarRecorder {
         return { name, value };
       });
     } catch (e) {
-      console.error("Failed to parse query string for url", url);
-      console.error(e);
+      if (this._debugLogs) {
+        console.error("Failed to parse query string for url", url);
+        console.error(e);
+      }
       return [];
     }
   }
