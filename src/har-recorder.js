@@ -45,7 +45,7 @@ class HarRecorder {
     const { method, params } = event;
     if (!method || !params) {
       throw new Error(
-        "recordEvent expects a BiDi event with method and params"
+        "recordEvent expects a BiDi event with method and params",
       );
     }
 
@@ -125,6 +125,31 @@ class HarRecorder {
     };
   }
 
+  _deserializeHeaders(headersOrCookies) {
+    if (!Array.isArray(headersOrCookies)) {
+      return [];
+    }
+
+    return headersOrCookies.map(({ name, value }) => {
+      // Legacy implementation for old WebDriver BiDi network events.
+      if (typeof value == "string") {
+        return { name, value };
+      }
+
+      // WebDriver BiDi network events using network.BytesValue
+      switch (value?.type) {
+        case "string":
+          return { name, value: value.value };
+        case "base64":
+          this._log(`Header with type=base64 not supported yet, name: ${name}`);
+          return { name };
+        default:
+          this._log(`Unknown header format, name: ${name}, value: ${value}`);
+          return { name };
+      }
+    });
+  }
+
   _exportAsHar() {
     const browserDetails = {
       name: this._browser,
@@ -146,20 +171,20 @@ class HarRecorder {
     const pages = [];
     for (const pageTiming of this.pageTimings) {
       this._log(
-        `Process page timing with type: ${pageTiming.type} for url: ${pageTiming.url}`
+        `Process page timing with type: ${pageTiming.type} for url: ${pageTiming.url}`,
       );
       // Check if there is already a page item in this recording for the same URL.
       // Also exclude page entries which already have a timing corresponding to
       // the type ("load", "domContentLoaded"...), which would indicate another
       // navigation to the same URL.
       let page = pages.find(
-        (p) => p.url === pageTiming.url && !p.pageTimings[pageTiming.type]
+        (p) => p.url === pageTiming.url && !p.pageTimings[pageTiming.type],
       );
       if (!page) {
         // Create a base page record.
         const id = `page_${pages.length + 1}`;
         this._log(
-          `Create page entry for url: ${pageTiming.url} with id: ${id}`
+          `Create page entry for url: ${pageTiming.url} with id: ${id}`,
         );
         page = this._createPageData(id, pageTiming.url, pageTiming.startedTime);
         pages.push(page);
@@ -171,12 +196,12 @@ class HarRecorder {
 
     if (!pages.length && this.networkEntries.length) {
       this._log(
-        `No page recorded, creating a dummy page for url: ${this._lastPageUrl}`
+        `No page recorded, creating a dummy page for url: ${this._lastPageUrl}`,
       );
       const firstRequest = this.networkEntries[0].request;
       const startedTime = firstRequest.timings.requestTime / 1000;
       pages.push(
-        this._createPageData("page_1", this._lastPageUrl, startedTime)
+        this._createPageData("page_1", this._lastPageUrl, startedTime),
       );
     }
 
@@ -187,7 +212,7 @@ class HarRecorder {
 
       if (!networkEntry.response) {
         this._log(
-          `Warning: Ignoring entry without response for url: ${networkEntry.url} (id: ${networkEntry.id})`
+          `Warning: Ignoring entry without response for url: ${networkEntry.url} (id: ${networkEntry.id})`,
         );
         continue;
       }
@@ -201,11 +226,11 @@ class HarRecorder {
 
       if (entry.pageref) {
         this._log(
-          `Network entry for url: ${networkEntry.url} attached to page with id: ${entry.pageref}`
+          `Network entry for url: ${networkEntry.url} attached to page with id: ${entry.pageref}`,
         );
       } else {
         this._log(
-          `Could not find a page matching entry: ${networkEntry.url}, creating dummy page for url: ${this._initialPageUrl}`
+          `Could not find a page matching entry: ${networkEntry.url}, creating dummy page for url: ${this._initialPageUrl}`,
         );
         const firstRequest = this.networkEntries[0].request;
         const startedTime = firstRequest.timings.requestTime / 1000;
@@ -213,7 +238,11 @@ class HarRecorder {
         recording.log.pages.splice(
           0,
           0,
-          this._createPageData(initialPageId, this._initialPageUrl, startedTime)
+          this._createPageData(
+            initialPageId,
+            this._initialPageUrl,
+            startedTime,
+          ),
         );
         entry.pageref = initialPageId;
       }
@@ -288,7 +317,7 @@ class HarRecorder {
     const url = params.request.url;
 
     this._log(
-      `Event "beforeRequestSent" for url: ${this._shortUrl(url)} (id: ${id})`
+      `Event "beforeRequestSent" for url: ${this._shortUrl(url)} (id: ${id})`,
     );
     this.networkEntries.push({
       contextId: params.context,
@@ -307,18 +336,18 @@ class HarRecorder {
 
     if (type === "load") {
       this._log(
-        `Event "load" for url: ${this._shortUrl(url)} (context id: ${context})`
+        `Event "load" for url: ${this._shortUrl(url)} (context id: ${context})`,
       );
       const firstTiming = this._findLast(
         this.pageTimings,
-        (timing) => timing.contextId === context
+        (timing) => timing.contextId === context,
       );
 
       if (!firstTiming || firstTiming.type != "domContentLoaded") {
         this._log(
           `Warning: "domContentLoaded" event not found for "load" for url: ${this._shortUrl(
-            url
-          )} (context id: ${context})`
+            url,
+          )} (context id: ${context})`,
         );
         return;
       }
@@ -327,33 +356,33 @@ class HarRecorder {
     } else {
       this._log(
         `Event "domContentLoaded" for url: ${this._shortUrl(
-          url
-        )} (context id: ${context})`
+          url,
+        )} (context id: ${context})`,
       );
       let firstRequest = this._findLast(
         this.networkEntries,
-        (entry) => entry.contextId === context && entry.request.url === url
+        (entry) => entry.contextId === context && entry.request.url === url,
       );
 
       if (!firstRequest) {
         // Alternatively settle on the previous
         this._log(
           `Warning: No request found for "domContentLoaded" using url: ${this._shortUrl(
-            url
-          )} and context id: ${context}`
+            url,
+          )} and context id: ${context}`,
         );
         firstRequest = this._findLast(
           this.networkEntries,
           (entry) =>
             entry.contextId === context &&
-            entry.response?.mimeType.startsWith("text/html")
+            entry.response?.mimeType.startsWith("text/html"),
         );
       }
 
       if (!firstRequest) {
         // Bail if we can't find any request matching this browsing context.
         this._log(
-          `Warning: No request found for "domContentLoaded" using only context id: ${context}`
+          `Warning: No request found for "domContentLoaded" using only context id: ${context}`,
         );
         this._log(`Warning: Bailing out`);
         return;
@@ -364,7 +393,7 @@ class HarRecorder {
           this.networkEntries,
           (entry) =>
             entry.request.request === firstRequest.request.request &&
-            entry.redirectCount == 0
+            entry.redirectCount == 0,
         );
 
         firstRequest = firstRequestWithRedirects || firstRequest;
@@ -392,13 +421,13 @@ class HarRecorder {
     const id = params.request.request + "-" + params.redirectCount;
     const url = params.request.url;
     this._log(
-      `Event "responseCompleted" for url: ${this._shortUrl(url)} (id: ${id})`
+      `Event "responseCompleted" for url: ${this._shortUrl(url)} (id: ${id})`,
     );
 
     const entry = this.networkEntries.find(
       (e) =>
         e.request.request === params.request.request &&
-        e.redirectCount === params.redirectCount
+        e.redirectCount === params.redirectCount,
     );
     if (entry) {
       entry.request = params.request;
@@ -406,8 +435,8 @@ class HarRecorder {
     } else {
       this._log(
         `Warning: no matching entry found for url: ${this._shortUrl(
-          url
-        )} (id: ${id})`
+          url,
+        )} (id: ${id})`,
       );
     }
   }
@@ -448,8 +477,8 @@ class HarRecorder {
       method: networkEntry.request.method,
       url: networkEntry.request.url,
       httpVersion: networkEntry.response.protocol || "?",
-      headers: networkEntry.request.headers,
-      cookies: networkEntry.request.cookies,
+      headers: this._deserializeHeaders(networkEntry.request.headers),
+      cookies: this._deserializeHeaders(networkEntry.request.cookies),
       queryString: this._parseQueryString(networkEntry.request.url) || [],
       headersSize: networkEntry.request.headersSize,
     };
@@ -461,7 +490,7 @@ class HarRecorder {
       status: networkEntry.response.status || -1,
       statusText: networkEntry.response.statusText || "?",
       httpVersion: networkEntry.response.protocol || "?",
-      headers: networkEntry.response.headers || [],
+      headers: this._deserializeHeaders(networkEntry.response.headers),
       cookies: [],
       content: {
         mimeType: networkEntry.response.mimeType || "?",
