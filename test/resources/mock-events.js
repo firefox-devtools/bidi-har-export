@@ -1,13 +1,23 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
-const { requestHeaders, responseHeaders } = require('./common-resources');
+let { requestHeaders, responseHeaders } = require("./common-resources");
 
 let gRequestId = 10;
 
 function getMockEvents(startTime, options = {}) {
-  const { contextId = "context-1" } = options;
+  const { contextId = "context-1", useLegacyHeaderFormat = false } = options;
   const highResStartTime = startTime * 1000;
   const requestId = (options.requestId || gRequestId++) + "";
+
+  if (useLegacyHeaderFormat) {
+    requestHeaders = requestHeaders.map(({ name, value }) => {
+      return { name, value: value.value };
+    });
+    responseHeaders = responseHeaders.map(({ name, value }) => {
+      return { name, value: value.value };
+    });
+  }
+
   const beforeRequestSentEvent = {
     method: "network.beforeRequestSent",
     params: {
