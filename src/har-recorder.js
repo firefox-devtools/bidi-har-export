@@ -375,7 +375,7 @@ class HarRecorder {
           this.networkEntries,
           (entry) =>
             entry.contextId === context &&
-            entry.response?.mimeType.startsWith("text/html"),
+            entry.response?.mimeType?.startsWith("text/html"),
         );
       }
 
