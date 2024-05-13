@@ -35,6 +35,7 @@ class HarRecorder {
 
     this.networkEntries = [];
     this.pageTimings = [];
+    this.topLevelContexts = [];
   }
 
   recordEvent(event) {
@@ -55,6 +56,9 @@ class HarRecorder {
         break;
       case "network.responseCompleted":
         this._onResponseCompleted(params);
+        break;
+      case "browsingContext.contextCreated":
+        this._onContextCreatedEvent(params);
         break;
       case "browsingContext.domContentLoaded":
         this._onBrowsingContextEvent("domContentLoaded", params);
@@ -331,6 +335,15 @@ class HarRecorder {
   _onBrowsingContextEvent(type, params) {
     let { context, timestamp, url } = params;
 
+    if (!this.topLevelContexts.includes(context)) {
+      this._log(
+        `Browsing context event "${type}" for url: ${this._shortUrl(
+          url,
+        )} discarded (not a top-level context)`,
+      );
+      return;
+    }
+
     let relativeTime = +Infinity,
       startedTime = -1;
 
@@ -415,6 +428,12 @@ class HarRecorder {
       type,
       url,
     });
+  }
+
+  _onContextCreatedEvent(params) {
+    if (!params.parent) {
+      this.topLevelContexts.push(params.context);
+    }
   }
 
   _onResponseCompleted(params) {

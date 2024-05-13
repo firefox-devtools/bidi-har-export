@@ -6,6 +6,7 @@ const HarRecorder = require("../har-recorder");
 
 const EVENT_ORDER = [
   "network.beforeRequestSent",
+  "browsingContext.contextCreated",
   "browsingContext.domContentLoaded",
   "network.responseCompleted",
   "browsingContext.load",
@@ -25,6 +26,7 @@ const EVENT_ORDER = [
  * The expected events are:
  * - network.beforeRequestSent
  * - network.responseCompleted
+ * - browsingContext.contextCreated
  * - browsingContext.domContentLoaded
  * - browsingContext.load
  */

@@ -5,7 +5,11 @@ let { requestHeaders, responseHeaders } = require("./common-resources");
 let gRequestId = 10;
 
 function getMockEvents(startTime, options = {}) {
-  const { contextId = "context-1", useLegacyHeaderFormat = false } = options;
+  const {
+    contextId = "context-1",
+    parentContextId = null,
+    useLegacyHeaderFormat = false,
+  } = options;
   const highResStartTime = startTime * 1000;
   const requestId = (options.requestId || gRequestId++) + "";
 
@@ -112,6 +116,17 @@ function getMockEvents(startTime, options = {}) {
     },
   };
 
+  const contextCreatedEvent = {
+    method: "browsingContext.contextCreated",
+    params: {
+      context: contextId,
+      parent: parentContextId,
+      url: options.url || "https://example.com/",
+      userContext: "default",
+      timestamp: startTime + 4,
+    },
+  };
+
   const domContentLoadedEvent = {
     method: "browsingContext.domContentLoaded",
     params: {
@@ -132,6 +147,7 @@ function getMockEvents(startTime, options = {}) {
 
   return {
     beforeRequestSentEvent,
+    contextCreatedEvent,
     domContentLoadedEvent,
     loadEvent,
     responseCompletedEvent,

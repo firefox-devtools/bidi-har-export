@@ -13,10 +13,11 @@ test("HarRecorder generates har export with default initial page", () => {
   const {
     beforeRequestSentEvent: earlyBeforeRequestSentEvent,
     responseCompletedEvent: earlyResponseCompletedEvent,
-  } = getMockEvents(startTime, { url: "https://other.example.com/"});
+  } = getMockEvents(startTime, { url: "https://other.example.com/" });
 
   const {
     beforeRequestSentEvent,
+    contextCreatedEvent,
     domContentLoadedEvent,
     loadEvent,
     responseCompletedEvent,
@@ -26,6 +27,7 @@ test("HarRecorder generates har export with default initial page", () => {
   recorder.recordEvent(earlyResponseCompletedEvent);
   recorder.recordEvent(beforeRequestSentEvent);
   recorder.recordEvent(responseCompletedEvent);
+  recorder.recordEvent(contextCreatedEvent);
   recorder.recordEvent(domContentLoadedEvent);
   recorder.recordEvent(loadEvent);
 
@@ -54,10 +56,11 @@ test("HarRecorder generates har export with provided initial page", () => {
   const {
     beforeRequestSentEvent: earlyBeforeRequestSentEvent,
     responseCompletedEvent: earlyResponseCompletedEvent,
-  } = getMockEvents(startTime, { url: "https://other.example.com/"});
+  } = getMockEvents(startTime, { url: "https://other.example.com/" });
 
   const {
     beforeRequestSentEvent,
+    contextCreatedEvent,
     domContentLoadedEvent,
     loadEvent,
     responseCompletedEvent,
@@ -67,6 +70,7 @@ test("HarRecorder generates har export with provided initial page", () => {
   recorder.recordEvent(earlyResponseCompletedEvent);
   recorder.recordEvent(beforeRequestSentEvent);
   recorder.recordEvent(responseCompletedEvent);
+  recorder.recordEvent(contextCreatedEvent);
   recorder.recordEvent(domContentLoadedEvent);
   recorder.recordEvent(loadEvent);
 
