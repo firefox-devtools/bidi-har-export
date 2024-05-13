@@ -8,29 +8,34 @@ test("EventsCollectionExporter generates simple har export", () => {
   const startTime = Date.now();
   const {
     beforeRequestSentEvent,
+    contextCreatedEvent,
     domContentLoadedEvent,
     loadEvent,
     responseCompletedEvent,
   } = getMockEvents(startTime);
 
-  const testCases = [{
-    name: "Expected order",
-    events: [
-      beforeRequestSentEvent,
-      domContentLoadedEvent,
-      loadEvent,
-      responseCompletedEvent,
-    ],
-  },
-  {
-    name: "random order",
-    events: [
-      loadEvent,
-      domContentLoadedEvent,
-      responseCompletedEvent,
-      beforeRequestSentEvent,
-    ],
-  }];
+  const testCases = [
+    {
+      name: "Expected order",
+      events: [
+        beforeRequestSentEvent,
+        contextCreatedEvent,
+        domContentLoadedEvent,
+        loadEvent,
+        responseCompletedEvent,
+      ],
+    },
+    {
+      name: "random order",
+      events: [
+        loadEvent,
+        domContentLoadedEvent,
+        responseCompletedEvent,
+        contextCreatedEvent,
+        beforeRequestSentEvent,
+      ],
+    },
+  ];
 
   for (const { name, events } of testCases) {
     console.log("Test case: " + name);

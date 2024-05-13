@@ -47,17 +47,21 @@ class SeleniumBiDiHarRecorder {
     this.bidi = await this._driver.getBidi();
 
     await this.bidi.subscribe(
+      "browsingContext.contextCreated",
+      this._browsingContextIds,
+    );
+    await this.bidi.subscribe(
       "browsingContext.domContentLoaded",
-      this._browsingContextIds
+      this._browsingContextIds,
     );
     await this.bidi.subscribe("browsingContext.load", this._browsingContextIds);
     await this.bidi.subscribe(
       "network.beforeRequestSent",
-      this._browsingContextIds
+      this._browsingContextIds,
     );
     await this.bidi.subscribe(
       "network.responseCompleted",
-      this._browsingContextIds
+      this._browsingContextIds,
     );
 
     this.ws = await this.bidi.socket;
@@ -77,20 +81,24 @@ class SeleniumBiDiHarRecorder {
     this.ws.off("message", this._onMessage);
 
     await this.bidi.unsubscribe(
+      "browsingContext.contextCreated",
+      this._browsingContextIds,
+    );
+    await this.bidi.unsubscribe(
       "browsingContext.domContentLoaded",
-      this._browsingContextIds
+      this._browsingContextIds,
     );
     await this.bidi.unsubscribe(
       "browsingContext.load",
-      this._browsingContextIds
+      this._browsingContextIds,
     );
     await this.bidi.unsubscribe(
       "network.beforeRequestSent",
-      this._browsingContextIds
+      this._browsingContextIds,
     );
     await this.bidi.unsubscribe(
       "network.responseCompleted",
-      this._browsingContextIds
+      this._browsingContextIds,
     );
 
     const lastPageUrl = await this._getPageUrl();
@@ -108,13 +116,13 @@ class SeleniumBiDiHarRecorder {
       try {
         const browsingContextId = this._browsingContextIds[0];
         const params = {
-          method: 'browsingContext.getTree',
+          method: "browsingContext.getTree",
           params: {
             root: browsingContextId,
           },
-        }
+        };
 
-        const response = await this.bidi.send(params)
+        const response = await this.bidi.send(params);
         pageUrl = response.result.contexts[0].url;
       } catch (e) {
         // Could not fetch page url.
