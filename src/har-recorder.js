@@ -310,6 +310,10 @@ class HarRecorder {
     return undefined;
   }
 
+  _isDataURL(url) {
+    return url.startsWith("data:");
+  }
+
   _log(message) {
     if (this._debugLogs) {
       console.log(`[har-recorder] ${message}`);
@@ -319,6 +323,13 @@ class HarRecorder {
   _onBeforeRequestSent(params) {
     const id = params.request.request + "-" + params.redirectCount;
     const url = params.request.url;
+
+    if (this._isDataURL(url)) {
+      // Currently timings for data URLs are completely incorrect and it is not
+      // clear if data URLs are relevant for HAR export.
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1916651
+      return;
+    }
 
     this._log(
       `Event "beforeRequestSent" for url: ${this._shortUrl(url)} (id: ${id})`,
@@ -439,6 +450,14 @@ class HarRecorder {
   _onResponseCompleted(params) {
     const id = params.request.request + "-" + params.redirectCount;
     const url = params.request.url;
+
+    if (this._isDataURL(url)) {
+      // Currently timings for data URLs are completely incorrect and it is not
+      // clear if data URLs are relevant for HAR export.
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1916651
+      return;
+    }
+
     this._log(
       `Event "responseCompleted" for url: ${this._shortUrl(url)} (id: ${id})`,
     );
