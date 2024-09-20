@@ -203,7 +203,9 @@ class HarRecorder {
         `No page recorded, creating a dummy page for url: ${this._lastPageUrl}`,
       );
       const firstRequest = this.networkEntries[0].request;
-      const startedTime = firstRequest.timings.requestTime / 1000;
+      const startedTime = this._normalizeTiming(
+        firstRequest.timings.requestTime,
+      );
       pages.push(
         this._createPageData("page_1", this._lastPageUrl, startedTime),
       );
@@ -237,7 +239,9 @@ class HarRecorder {
           `Could not find a page matching entry: ${networkEntry.url}, creating dummy page for url: ${this._initialPageUrl}`,
         );
         const firstRequest = this.networkEntries[0].request;
-        const startedTime = firstRequest.timings.requestTime / 1000;
+        const startedTime = this._normalizeTiming(
+          firstRequest.timings.requestTime,
+        );
         const initialPageId = "page_0";
         recording.log.pages.splice(
           0,
@@ -312,6 +316,19 @@ class HarRecorder {
 
   _isDataURL(url) {
     return url.startsWith("data:");
+  }
+
+  _normalizeTiming(timing) {
+    // Firefox 131 or older returned timings in microseconds whereas Firefox 132
+    // or newer returns timings in milliseconds, as expected in the spec.
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1916685
+    if (timing > Date.now() * 100) {
+      // If timing is at least a 100 times greater than the current date, we are
+      // dealing with microseconds.
+      return timing / 1000;
+    }
+
+    return timing;
   }
 
   _log(message) {
@@ -424,7 +441,7 @@ class HarRecorder {
       }
 
       const timings = firstRequest.request.timings;
-      startedTime = timings.requestTime / 1000;
+      startedTime = this._normalizeTiming(timings.requestTime);
       firstRequest.isFirstRequest = true;
     }
 
@@ -522,7 +539,7 @@ class HarRecorder {
     };
 
     const timings = networkEntry.request.timings;
-    harEntry.startedTime = timings.requestTime / 1000;
+    harEntry.startedTime = this._normalizeTiming(timings.requestTime);
     harEntry.startedDateTime = new Date(harEntry.startedTime).toISOString();
     harEntry.response = {
       status: networkEntry.response.status || -1,
@@ -550,25 +567,29 @@ class HarRecorder {
     harEntry.timings = {};
 
     let last = timings.requestTime;
-    harEntry.timings.blocked = (timings.dnsStart - last) / 1000;
+    harEntry.timings.blocked = this._normalizeTiming(timings.dnsStart - last);
 
     last = timings.dnsStart || last;
-    harEntry.timings.dns = (timings.dnsEnd - timings.dnsStart) / 1000;
+    harEntry.timings.dns = this._normalizeTiming(
+      timings.dnsEnd - timings.dnsStart,
+    );
 
     last = timings.connectStart || last;
-    harEntry.timings.connect = (timings.connectEnd - last) / 1000;
+    harEntry.timings.connect = this._normalizeTiming(timings.connectEnd - last);
 
     last = timings.tlsStart || last;
-    harEntry.timings.ssl = (timings.tlsEnd - last) / 1000;
+    harEntry.timings.ssl = this._normalizeTiming(timings.tlsEnd - last);
 
     last = timings.tlsEnd || last;
-    harEntry.timings.send = (timings.requestStart - last) / 1000;
+    harEntry.timings.send = this._normalizeTiming(timings.requestStart - last);
 
     last = timings.requestStart || last;
-    harEntry.timings.wait = (timings.responseStart - last) / 1000;
+    harEntry.timings.wait = this._normalizeTiming(timings.responseStart - last);
 
     last = timings.responseStart || last;
-    harEntry.timings.receive = (timings.responseEnd - last) / 1000;
+    harEntry.timings.receive = this._normalizeTiming(
+      timings.responseEnd - last,
+    );
 
     let time = 0;
     for (const key of Object.keys(harEntry.timings)) {

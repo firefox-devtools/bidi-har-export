@@ -9,8 +9,9 @@ function getMockEvents(startTime, options = {}) {
     contextId = "context-1",
     parentContextId = null,
     useLegacyHeaderFormat = false,
+    useMicroseconds = false,
   } = options;
-  const highResStartTime = startTime * 1000;
+  const highResStartTime = startTime * (useMicroseconds ? 1000 : 1);
   const requestId = (options.requestId || gRequestId++) + "";
 
   if (useLegacyHeaderFormat) {
