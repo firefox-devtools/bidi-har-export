@@ -36,6 +36,8 @@ class HarRecorder {
     this.networkEntries = [];
     this.pageTimings = [];
     this.topLevelContexts = [];
+
+    this._isInMicroseconds = undefined;
   }
 
   recordEvent(event) {
@@ -322,9 +324,13 @@ class HarRecorder {
     // Firefox 131 or older returned timings in microseconds whereas Firefox 132
     // or newer returns timings in milliseconds, as expected in the spec.
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1916685
-    if (timing > Date.now() * 100) {
+    if (this._isInMicroseconds === undefined) {
       // If timing is at least a 100 times greater than the current date, we are
       // dealing with microseconds.
+      this._isInMicroseconds = timing > Date.now() * 100;
+    }
+
+    if (this._isInMicroseconds) {
       return timing / 1000;
     }
 
