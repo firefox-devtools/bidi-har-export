@@ -45,6 +45,9 @@ test("HarRecorder generates simple har export", () => {
 
   const isoEntryDate = harExport.log.entries[0].startedDateTime;
   expect(new Date(isoEntryDate) * 1).toBe(startTime + 50);
+
+  const totalTime = harExport.log.entries[0].time;
+  expect(totalTime).toBe(650);
 });
 
 test("HarRecorder generates simple har export with microseconds", () => {
@@ -74,9 +77,8 @@ test("HarRecorder generates simple har export with microseconds", () => {
   expect(harExport.log.entries.length).toBe(1);
 
   const isoEntryDate = harExport.log.entries[0].startedDateTime;
+  expect(new Date(isoEntryDate) * 1).toBe(startTime + 50);
 
-  // Note: the request start time happens 50 microseconds after startTime
-  // which is going to be equal to startTime when converted to milliseconds.
-  // So compare directly with startTime.
-  expect(new Date(isoEntryDate) * 1).toBe(startTime);
+  const totalTime = harExport.log.entries[0].time;
+  expect(totalTime).toBe(650);
 });

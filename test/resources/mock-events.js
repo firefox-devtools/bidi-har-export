@@ -11,7 +11,8 @@ function getMockEvents(startTime, options = {}) {
     useLegacyHeaderFormat = false,
     useMicroseconds = false,
   } = options;
-  const highResStartTime = startTime * (useMicroseconds ? 1000 : 1);
+  const timeMult = useMicroseconds ? 1000 : 1;
+  const highResStartTime = startTime * timeMult;
   const requestId = (options.requestId || gRequestId++) + "";
 
   if (useLegacyHeaderFormat) {
@@ -39,7 +40,7 @@ function getMockEvents(startTime, options = {}) {
         request: requestId,
         timings: {
           originTime: 0,
-          requestTime: highResStartTime + 50,
+          requestTime: highResStartTime + 50 * timeMult,
           redirectStart: 0,
           redirectEnd: 0,
           fetchStart: 0,
@@ -80,19 +81,19 @@ function getMockEvents(startTime, options = {}) {
         request: requestId,
         timings: {
           originTime: 0,
-          requestTime: highResStartTime + 50,
+          requestTime: highResStartTime + 50 * timeMult,
           redirectStart: 0,
           redirectEnd: 0,
-          fetchStart: highResStartTime + 100,
-          dnsStart: highResStartTime + 150,
-          dnsEnd: highResStartTime + 200,
-          connectStart: highResStartTime + 300,
-          connectEnd: highResStartTime + 400,
-          tlsStart: highResStartTime + 500,
-          tlsEnd: highResStartTime + 600,
-          requestStart: highResStartTime + 700,
-          responseStart: highResStartTime + 800,
-          responseEnd: highResStartTime + 900,
+          fetchStart: highResStartTime + 100 * timeMult,
+          dnsStart: highResStartTime + 150 * timeMult,
+          dnsEnd: highResStartTime + 200 * timeMult,
+          connectStart: highResStartTime + 300 * timeMult,
+          connectEnd: highResStartTime + 400 * timeMult,
+          tlsStart: highResStartTime + 500 * timeMult,
+          tlsEnd: highResStartTime + 600 * timeMult,
+          requestStart: highResStartTime + 700 * timeMult,
+          responseStart: highResStartTime + 800 * timeMult,
+          responseEnd: highResStartTime + 900 * timeMult,
         },
         url: options.url || "https://example.com/",
         rawHeaders:
