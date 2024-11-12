@@ -1,6 +1,6 @@
 {
   "name": "ff-test-bidi-har-export",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Experimental helper to export HAR files from WebDriverBiDi network events",
   "main": "index.js",
   "scripts": {
