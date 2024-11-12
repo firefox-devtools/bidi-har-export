@@ -225,6 +225,13 @@ class HarRecorder {
         continue;
       }
 
+      if (networkEntry.request.timings.requestTime == 0) {
+        this._log(
+          `Warning: Ignoring entry with invalid requestTime for url: ${networkEntry.url} (id: ${networkEntry.id})`,
+        );
+        continue;
+      }
+
       const entry = this._toHAREntry(networkEntry);
       for (const page of recording.log.pages) {
         if (page.startedTime <= entry.startedTime) {
