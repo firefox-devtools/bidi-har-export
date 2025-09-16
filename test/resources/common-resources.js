@@ -81,6 +81,13 @@ exports.requestHeaders = [
       value: "?1",
     },
   },
+  {
+    name: "Authorization",
+    value: {
+      type: "string",
+      value: "Bearer 1234"
+    }
+  }
 ];
 
 exports.responseHeaders = [

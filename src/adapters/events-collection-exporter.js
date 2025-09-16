@@ -43,15 +43,20 @@ class EventsCollectionExporter {
    *     Should the HarRecorder provide additional logs for debugging.
    * @param {string} options.version
    *     Version of the browser for which we are recording the HAR
+   * @param {Function} [options.headerValueFormatter]
+   *     An optional formatter function to use to format the header value.
+   *     The function should take the header name and value, and return the formatted value.
+   *     If not provided, the original header value will be used.
    */
   constructor(options) {
-    const { browser, debugLogs, events, version } = options;
+    const { browser, debugLogs, events, version, headerValueFormatter } = options;
 
     this._events = events;
     this._recorder = new HarRecorder({
       browser: browser || "firefox",
       debugLogs,
       version: version || "111.0a1",
+      headerValueFormatter,
     });
   }
 

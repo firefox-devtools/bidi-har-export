@@ -15,6 +15,10 @@ class HarRecorder {
    *     Should the HarRecorder provide additional logs for debugging.
    * @param {string} options.version
    *     Version of the browser for which we are recording the HAR
+   * @param {Function} [options.headerValueFormatter]
+   *     An optional formatter function to use to format the header value.
+   *     The function should take the header name and value, and return the formatted value.
+   *     If not provided, the original header value will be used.
    */
   constructor(options) {
     if (typeof options?.browser != "string") {
@@ -28,6 +32,7 @@ class HarRecorder {
     this._browser = options.browser;
     this._debugLogs = options.debugLogs;
     this._version = options.version;
+    this._headerValueFormatter = options.headerValueFormatter || ((__, value) => value);
 
     // Initial and last page default data.
     this._initialPageUrl = "(initial page - missing url)";
@@ -139,13 +144,13 @@ class HarRecorder {
     return headersOrCookies.map(({ name, value }) => {
       // Legacy implementation for old WebDriver BiDi network events.
       if (typeof value == "string") {
-        return { name, value };
+        return { name, value: this._headerValueFormatter(name, value) };
       }
 
       // WebDriver BiDi network events using network.BytesValue
       switch (value?.type) {
         case "string":
-          return { name, value: value.value };
+          return { name, value: this._headerValueFormatter(name, value.value) };
         case "base64":
           this._log(`Header with type=base64 not supported yet, name: ${name}`);
           return { name };
