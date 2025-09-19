@@ -21,13 +21,18 @@ class SeleniumBiDiHarRecorder {
    *     Should the HarRecorder provide additional logs for debugging.
    * @param {object} options.driver
    *     The Selenium driver
+   * @param {Function} [options.headerValueFormatter]
+   *     An optional formatter function to use to format the header value.
+   *     The function should take the header name and value, and return the formatted value.
+   *     If not provided, the original header value will be used.
    */
   constructor(options) {
-    const { browsingContextIds, debugLogs, driver } = options;
+    const { browsingContextIds, debugLogs, driver, headerValueFormatter } = options;
 
     this._browsingContextIds = browsingContextIds;
     this._debugLogs = debugLogs || false;
     this._driver = driver;
+    this._headerValueFormatter = headerValueFormatter;
 
     this._onMessage = this._onMessage.bind(this);
   }
@@ -42,6 +47,7 @@ class SeleniumBiDiHarRecorder {
       browser: capabilities.get("browserName"),
       debugLogs: this._debugLogs,
       version: capabilities.get("browserVersion"),
+      headerValueFormatter: this._headerValueFormatter,
     });
 
     this.bidi = await this._driver.getBidi();

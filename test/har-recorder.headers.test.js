@@ -5,8 +5,8 @@ const { HarRecorder } = require("..");
 const { getMockEvents } = require("./resources/mock-events");
 
 // Common test function to run against legacy and non-legacy headers format.
-function runHeadersTest({ useLegacyHeaderFormat }) {
-  const recorder = new HarRecorder({ browser: "browser", version: "version" });
+function getHarExport({ useLegacyHeaderFormat, headerValueFormatter }) {
+  const recorder = new HarRecorder({ browser: "browser", version: "version", headerValueFormatter });
 
   recorder.startRecording();
 
@@ -23,7 +23,11 @@ function runHeadersTest({ useLegacyHeaderFormat }) {
   recorder.recordEvent(domContentLoadedEvent);
   recorder.recordEvent(loadEvent);
 
-  const harExport = recorder.stopRecording();
+  return recorder.stopRecording();
+}
+
+function runHeadersTest({ useLegacyHeaderFormat }) {
+  const harExport = getHarExport({ useLegacyHeaderFormat });
   const entry = harExport.log.entries[0];
   expect(Array.isArray(entry.request.headers)).toBe(true);
   expect(Array.isArray(entry.response.headers)).toBe(true);
@@ -47,4 +51,20 @@ test("HarRecorder generates har with headers ", () => {
 
 test("HarRecorder generates har with headers from legacy events", () => {
   runHeadersTest({ useLegacyHeaderFormat: true });
+});
+
+test("HarRecorder generates har with headers formatted by the headerValueFormatter, if provided ", () => {
+  const harExport = getHarExport({ useLegacyHeaderFormat: false, headerValueFormatter: (name, value) => {
+    if (name === "Authorization") {
+      return '[REDACTED]';
+    }
+    return value;
+  } });
+
+  const entry = harExport.log.entries[0];
+  const authorizationHeader = entry.request.headers.find(
+    (header) => header.name === "Authorization",
+  );
+  expect(authorizationHeader).toBeDefined();
+  expect(authorizationHeader.value).toBe("[REDACTED]");
 });
