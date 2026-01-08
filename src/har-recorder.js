@@ -161,6 +161,72 @@ class HarRecorder {
     });
   }
 
+  /**
+   * Extract body content from BytesValue format
+   *
+   * @param {Object} bytesValue
+   *     BiDi BytesValue object with type and value
+   * @returns {Object}
+   *     Object with { text, encoding } for HAR content field
+   * @private
+   */
+  _extractBodyContent(bytesValue) {
+    if (!bytesValue || !bytesValue.type) {
+      return { text: "", encoding: "" };
+    }
+
+    switch (bytesValue.type) {
+      case "string":
+        return {
+          text: bytesValue.value || "",
+          encoding: "",
+        };
+
+      case "base64":
+        return {
+          text: bytesValue.value || "",
+          encoding: "base64",
+        };
+
+      default:
+        this._log(`Unknown BytesValue type: ${bytesValue.type}`);
+        return { text: "", encoding: "" };
+    }
+  }
+
+  /**
+   * Extract MIME type from request headers for postData
+   *
+   * @param {Array} headers
+   *     Array of header objects with name/value
+   * @returns {string}
+   *     MIME type or "application/octet-stream" as default
+   * @private
+   */
+  _getRequestMimeType(headers) {
+    if (!Array.isArray(headers)) {
+      return "application/octet-stream";
+    }
+
+    const contentTypeHeader = headers.find(
+      (h) => h.name && h.name.toLowerCase() === "content-type"
+    );
+
+    if (!contentTypeHeader) {
+      return "application/octet-stream";
+    }
+
+    if (typeof contentTypeHeader.value === "string") {
+      return contentTypeHeader.value;
+    }
+
+    if (contentTypeHeader.value?.type === "string") {
+      return contentTypeHeader.value.value;
+    }
+
+    return "application/octet-stream";
+  }
+
   _exportAsHar() {
     const browserDetails = {
       name: this._browser,
@@ -505,6 +571,10 @@ class HarRecorder {
     if (entry) {
       entry.request = params.request;
       entry.response = params.response;
+
+      if (params._bodyData) {
+        entry._bodyData = params._bodyData;
+      }
     } else {
       this._log(
         `Warning: no matching entry found for url: ${this._shortUrl(
@@ -556,6 +626,20 @@ class HarRecorder {
       headersSize: networkEntry.request.headersSize,
     };
 
+    if (networkEntry._bodyData?.requestBody) {
+      const bodyContent = this._extractBodyContent(
+        networkEntry._bodyData.requestBody
+      );
+      if (bodyContent.text) {
+        harEntry.request.postData = {
+          mimeType: this._getRequestMimeType(networkEntry.request.headers),
+          params: [],
+          ...bodyContent,
+          comment: "",
+        };
+      }
+    }
+
     const timings = networkEntry.request.timings;
     harEntry.startedTime = this._normalizeTiming(timings.requestTime);
     harEntry.startedDateTime = new Date(harEntry.startedTime).toISOString();
@@ -568,8 +652,7 @@ class HarRecorder {
       content: {
         mimeType: networkEntry.response.mimeType || "?",
         size: networkEntry.response.content.size,
-        encoding: "",
-        text: "",
+        ...this._extractBodyContent(networkEntry._bodyData?.responseBody),
         comment: "",
         compression: "",
       },

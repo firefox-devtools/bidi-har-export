@@ -10,6 +10,9 @@ function getMockEvents(startTime, options = {}) {
     parentContextId = null,
     useLegacyHeaderFormat = false,
     useMicroseconds = false,
+    includeBodyData = false,
+    requestBody = null,
+    responseBody = null,
   } = options;
   const timeMult = useMicroseconds ? 1000 : 1;
   const highResStartTime = startTime * timeMult;
@@ -146,6 +149,13 @@ function getMockEvents(startTime, options = {}) {
       timestamp: startTime + 15,
     },
   };
+
+  if (includeBodyData) {
+    responseCompletedEvent.params._bodyData = {
+      requestBody,
+      responseBody,
+    };
+  }
 
   return {
     beforeRequestSentEvent,
