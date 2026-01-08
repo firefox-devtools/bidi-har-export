@@ -33,6 +33,7 @@ class SeleniumBiDiHarRecorder {
     this._debugLogs = debugLogs || false;
     this._driver = driver;
     this._headerValueFormatter = headerValueFormatter;
+    this._dataCollectorActive = false;
 
     this._onMessage = this._onMessage.bind(this);
   }
@@ -51,6 +52,26 @@ class SeleniumBiDiHarRecorder {
     });
 
     this.bidi = await this._driver.getBidi();
+
+    try {
+      await this.bidi.send({
+        method: "network.addDataCollector",
+        params: {
+          contexts: this._browsingContextIds,
+          dataTypes: ["request", "response"],
+        },
+      });
+      this._dataCollectorActive = true;
+      if (this._debugLogs) {
+        console.log("[SeleniumBiDiHarRecorder] Data collector activated");
+      }
+    } catch (e) {
+      console.warn(
+        "[SeleniumBiDiHarRecorder] Failed to activate data collector, body content will not be available",
+        e.message
+      );
+      this._dataCollectorActive = false;
+    }
 
     await this.bidi.subscribe(
       "browsingContext.contextCreated",
@@ -107,6 +128,26 @@ class SeleniumBiDiHarRecorder {
       this._browsingContextIds,
     );
 
+    if (this._dataCollectorActive) {
+      try {
+        await this.bidi.send({
+          method: "network.removeDataCollector",
+          params: {
+            contexts: this._browsingContextIds,
+          },
+        });
+        if (this._debugLogs) {
+          console.log("[SeleniumBiDiHarRecorder] Data collector deactivated");
+        }
+      } catch (e) {
+        console.warn(
+          "[SeleniumBiDiHarRecorder] Failed to deactivate data collector",
+          e.message
+        );
+      }
+      this._dataCollectorActive = false;
+    }
+
     const lastPageUrl = await this._getPageUrl();
     try {
       return this._recorder.stopRecording(lastPageUrl);
@@ -138,11 +179,68 @@ class SeleniumBiDiHarRecorder {
     return pageUrl;
   }
 
-  _onMessage(event) {
-    const { method, params } = JSON.parse(Buffer.from(event.toString()));
-    if (method && params) {
-      this._recorder.recordEvent({ method, params });
+  /**
+   * Fetch body data for a given request using network.getData
+   *
+   * @param {string} requestId
+   *     The BiDi request ID
+   * @returns {Promise<Object|null>}
+   *     Body data object or null if unavailable
+   * @private
+   */
+  async _fetchBodyData(requestId) {
+    try {
+      const response = await this.bidi.send({
+        method: "network.getData",
+        params: {
+          request: requestId,
+        },
+      });
+
+      const result = response.result;
+      if (!result) {
+        return null;
+      }
+
+      return {
+        requestBody: result.request || null,
+        responseBody: result.response || null,
+      };
+    } catch (e) {
+      if (this._debugLogs) {
+        console.log(
+          `[SeleniumBiDiHarRecorder] network.getData failed for ${requestId}: ${e.message}`
+        );
+      }
+      return null;
     }
+  }
+
+  async _onMessage(event) {
+    const { method, params } = JSON.parse(Buffer.from(event.toString()));
+
+    if (!method || !params) {
+      return;
+    }
+
+    if (method === "network.responseCompleted" && this._dataCollectorActive) {
+      try {
+        const requestId = params.request.request;
+        const bodyData = await this._fetchBodyData(requestId);
+
+        if (bodyData) {
+          params._bodyData = bodyData;
+        }
+      } catch (e) {
+        if (this._debugLogs) {
+          console.log(
+            `[SeleniumBiDiHarRecorder] Failed to fetch body data for request ${params.request.request}: ${e.message}`
+          );
+        }
+      }
+    }
+
+    this._recorder.recordEvent({ method, params });
   }
 }
 

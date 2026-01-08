@@ -40,6 +40,10 @@ class MockDriver {
     delete this._subscribedEvents[event];
   }
 
+  async send(command) {
+    throw new Error("MockDriver does not support send(): " + command.method);
+  }
+
   off(eventName, callback) {
     if (eventName !== "message") {
       throw new Error("Unsupported eventName for MockDriver: " + eventName);
