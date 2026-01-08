@@ -69,15 +69,16 @@ class SeleniumBiDiHarRecorder {
         method: "network.addDataCollector",
         params: {
           contexts: this._browsingContextIds,
+          dataTypes: ["request", "response"],
           maxEncodedDataSize: this._maxBodySize,
         },
       });
 
       if (this._isBiDiError(response)) {
-        throw new Error(response.error || "Failed to add data collector");
+        throw new Error(response.message || "Failed to add data collector");
       }
 
-      this._dataCollectorId = response.result?.dataCollector;
+      this._dataCollectorId = response.result?.collector;
       if (!this._dataCollectorId) {
         throw new Error("No data collector ID returned");
       }
@@ -162,7 +163,7 @@ class SeleniumBiDiHarRecorder {
         });
 
         if (this._isBiDiError(response)) {
-          throw new Error(response.error || "Failed to remove data collector");
+          throw new Error(response.message || "Failed to remove data collector");
         }
 
         if (this._debugLogs) {

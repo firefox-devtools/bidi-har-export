@@ -64,7 +64,7 @@ class MockDriverWithBodyData {
       return {
         type: "success",
         result: {
-          dataCollector: "test-collector-id-123",
+          collector: "test-collector-id-123",
         },
       };
     }
@@ -73,7 +73,7 @@ class MockDriverWithBodyData {
       if (command.params.dataCollector !== "test-collector-id-123") {
         return {
           type: "error",
-          error: "invalid data collector id",
+          message: "invalid data collector id",
         };
       }
       return { type: "success", result: {} };
@@ -180,7 +180,7 @@ test("SeleniumBiDiHarRecorder handles data collector failure gracefully", async 
       if (command.method === "network.addDataCollector") {
         return {
           type: "error",
-          error: "Data collector not supported",
+          message: "Data collector not supported",
         };
       }
       return super.send(command);
@@ -224,7 +224,7 @@ test("SeleniumBiDiHarRecorder handles getData failure gracefully", async () => {
       if (command.method === "network.getData") {
         return {
           type: "error",
-          error: "Request data no longer available",
+          message: "Request data no longer available",
         };
       }
       return super.send(command);
