@@ -41,6 +41,12 @@ class MockDriver {
   }
 
   async send(command) {
+    if (command.method.startsWith("network.")) {
+      return {
+        type: "error",
+        error: "unknown command",
+      };
+    }
     throw new Error("MockDriver does not support send(): " + command.method);
   }
 

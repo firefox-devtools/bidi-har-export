@@ -25,15 +25,26 @@ class SeleniumBiDiHarRecorder {
    *     An optional formatter function to use to format the header value.
    *     The function should take the header name and value, and return the formatted value.
    *     If not provided, the original header value will be used.
+   * @param {number} [options.maxBodySize=10485760]
+   *     Maximum size in bytes for request/response body data collection.
+   *     Defaults to 10MB (10485760 bytes).
    */
   constructor(options) {
-    const { browsingContextIds, debugLogs, driver, headerValueFormatter } = options;
+    const {
+      browsingContextIds,
+      debugLogs,
+      driver,
+      headerValueFormatter,
+      maxBodySize = 10485760,
+    } = options;
 
     this._browsingContextIds = browsingContextIds;
     this._debugLogs = debugLogs || false;
     this._driver = driver;
     this._headerValueFormatter = headerValueFormatter;
+    this._maxBodySize = maxBodySize;
     this._dataCollectorActive = false;
+    this._dataCollectorId = null;
 
     this._onMessage = this._onMessage.bind(this);
   }
@@ -54,16 +65,28 @@ class SeleniumBiDiHarRecorder {
     this.bidi = await this._driver.getBidi();
 
     try {
-      await this.bidi.send({
+      const response = await this.bidi.send({
         method: "network.addDataCollector",
         params: {
           contexts: this._browsingContextIds,
-          dataTypes: ["request", "response"],
+          maxEncodedDataSize: this._maxBodySize,
         },
       });
+
+      if (this._isBiDiError(response)) {
+        throw new Error(response.error || "Failed to add data collector");
+      }
+
+      this._dataCollectorId = response.result?.dataCollector;
+      if (!this._dataCollectorId) {
+        throw new Error("No data collector ID returned");
+      }
+
       this._dataCollectorActive = true;
       if (this._debugLogs) {
-        console.log("[SeleniumBiDiHarRecorder] Data collector activated");
+        console.log(
+          `[SeleniumBiDiHarRecorder] Data collector activated: ${this._dataCollectorId}`
+        );
       }
     } catch (e) {
       console.warn(
@@ -71,6 +94,7 @@ class SeleniumBiDiHarRecorder {
         e.message
       );
       this._dataCollectorActive = false;
+      this._dataCollectorId = null;
     }
 
     await this.bidi.subscribe(
@@ -128,14 +152,19 @@ class SeleniumBiDiHarRecorder {
       this._browsingContextIds,
     );
 
-    if (this._dataCollectorActive) {
+    if (this._dataCollectorActive && this._dataCollectorId) {
       try {
-        await this.bidi.send({
+        const response = await this.bidi.send({
           method: "network.removeDataCollector",
           params: {
-            contexts: this._browsingContextIds,
+            dataCollector: this._dataCollectorId,
           },
         });
+
+        if (this._isBiDiError(response)) {
+          throw new Error(response.error || "Failed to remove data collector");
+        }
+
         if (this._debugLogs) {
           console.log("[SeleniumBiDiHarRecorder] Data collector deactivated");
         }
@@ -146,6 +175,7 @@ class SeleniumBiDiHarRecorder {
         );
       }
       this._dataCollectorActive = false;
+      this._dataCollectorId = null;
     }
 
     const lastPageUrl = await this._getPageUrl();
@@ -180,6 +210,19 @@ class SeleniumBiDiHarRecorder {
   }
 
   /**
+   * Check if a BiDi response contains an error
+   *
+   * @param {Object} response
+   *     BiDi command response
+   * @returns {boolean}
+   *     true if response is an error
+   * @private
+   */
+  _isBiDiError(response) {
+    return response && response.type === "error";
+  }
+
+  /**
    * Fetch body data for a given request using network.getData
    *
    * @param {string} requestId
@@ -190,21 +233,37 @@ class SeleniumBiDiHarRecorder {
    */
   async _fetchBodyData(requestId) {
     try {
-      const response = await this.bidi.send({
-        method: "network.getData",
-        params: {
-          request: requestId,
-        },
-      });
+      const [requestResponse, responseResponse] = await Promise.all([
+        this.bidi.send({
+          method: "network.getData",
+          params: {
+            request: requestId,
+            dataType: "request",
+          },
+        }),
+        this.bidi.send({
+          method: "network.getData",
+          params: {
+            request: requestId,
+            dataType: "response",
+          },
+        }),
+      ]);
 
-      const result = response.result;
-      if (!result) {
+      if (
+        this._isBiDiError(requestResponse) &&
+        this._isBiDiError(responseResponse)
+      ) {
         return null;
       }
 
       return {
-        requestBody: result.request || null,
-        responseBody: result.response || null,
+        requestBody: this._isBiDiError(requestResponse)
+          ? null
+          : requestResponse.result?.data,
+        responseBody: this._isBiDiError(responseResponse)
+          ? null
+          : responseResponse.result?.data,
       };
     } catch (e) {
       if (this._debugLogs) {
