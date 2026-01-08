@@ -277,10 +277,10 @@ class SeleniumBiDiHarRecorder {
       return {
         requestBody: this._isBiDiError(requestResponse)
           ? null
-          : requestResponse.result?.data,
+          : requestResponse.result?.bytes,
         responseBody: this._isBiDiError(responseResponse)
           ? null
-          : responseResponse.result?.data,
+          : responseResponse.result?.bytes,
       };
     } catch (e) {
       if (this._debugLogs) {
