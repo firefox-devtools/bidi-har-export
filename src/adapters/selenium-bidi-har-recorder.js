@@ -251,6 +251,22 @@ class SeleniumBiDiHarRecorder {
         }),
       ]);
 
+      if (this._isBiDiError(requestResponse)) {
+        if (this._debugLogs) {
+          console.log(
+            `[SeleniumBiDiHarRecorder] network.getData for request body failed (${requestId}): ${requestResponse.message || "unknown error"}`
+          );
+        }
+      }
+
+      if (this._isBiDiError(responseResponse)) {
+        if (this._debugLogs) {
+          console.log(
+            `[SeleniumBiDiHarRecorder] network.getData for response body failed (${requestId}): ${responseResponse.message || "unknown error"}`
+          );
+        }
+      }
+
       if (
         this._isBiDiError(requestResponse) &&
         this._isBiDiError(responseResponse)
