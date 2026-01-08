@@ -32,7 +32,8 @@ class HarRecorder {
     this._browser = options.browser;
     this._debugLogs = options.debugLogs;
     this._version = options.version;
-    this._headerValueFormatter = options.headerValueFormatter || ((__, value) => value);
+    this._headerValueFormatter =
+      options.headerValueFormatter || ((__, value) => value);
 
     // Initial and last page default data.
     this._initialPageUrl = "(initial page - missing url)";
@@ -209,7 +210,7 @@ class HarRecorder {
     }
 
     const contentTypeHeader = headers.find(
-      (h) => h.name && h.name.toLowerCase() === "content-type"
+      (h) => h.name && h.name.toLowerCase() === "content-type",
     );
 
     if (!contentTypeHeader) {
@@ -628,7 +629,7 @@ class HarRecorder {
 
     if (networkEntry._bodyData?.requestBody) {
       const bodyContent = this._extractBodyContent(
-        networkEntry._bodyData.requestBody
+        networkEntry._bodyData.requestBody,
       );
       if (bodyContent.text) {
         harEntry.request.postData = {

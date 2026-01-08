@@ -86,7 +86,7 @@ class MockDriverWithBodyData {
         return {
           type: "success",
           result: {
-            data: {
+            bytes: {
               type: "string",
               value: '{"test":"request"}',
             },
@@ -98,7 +98,7 @@ class MockDriverWithBodyData {
         return {
           type: "success",
           result: {
-            data: {
+            bytes: {
               type: "string",
               value: "<html><body>Test Response</body></html>",
             },
