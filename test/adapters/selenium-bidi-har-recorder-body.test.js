@@ -249,3 +249,93 @@ test("SeleniumBiDiHarRecorder handles getData failure gracefully", async () => {
   expect(harExport.log.entries[0].response.content.text).toBe("");
   expect(harExport.log.entries[0].request.postData).toBeUndefined();
 });
+
+test("SeleniumBiDiHarRecorder handles partial getData failure - request succeeds, response fails", async () => {
+  const contextId = "context-1";
+  const startTime = Date.now();
+  const { beforeRequestSentEvent, domContentLoadedEvent, loadEvent, responseCompletedEvent } =
+    getMockEvents(startTime, { contextId });
+
+  const events = [
+    beforeRequestSentEvent,
+    responseCompletedEvent,
+    domContentLoadedEvent,
+    loadEvent,
+  ];
+
+  class MockDriverWithPartialFailure extends MockDriverWithBodyData {
+    async send(command) {
+      if (command.method === "network.getData" && command.params.dataType === "response") {
+        return {
+          type: "error",
+          message: "Response data not available",
+        };
+      }
+      return super.send(command);
+    }
+  }
+
+  const mockDriver = new MockDriverWithPartialFailure();
+  const recorder = new adapters.SeleniumBiDiHarRecorder({
+    driver: mockDriver,
+    browsingContextIds: [contextId],
+  });
+
+  await recorder.startRecording();
+
+  for (const event of events) {
+    await mockDriver._mockEmitEvent(event);
+  }
+
+  const harExport = await recorder.stopRecording();
+
+  expect(harExport.log.entries).toHaveLength(1);
+  expect(harExport.log.entries[0].request.postData).toBeDefined();
+  expect(harExport.log.entries[0].request.postData.text).toBe('{"test":"request"}');
+  expect(harExport.log.entries[0].response.content.text).toBe("");
+});
+
+test("SeleniumBiDiHarRecorder handles partial getData failure - response succeeds, request fails", async () => {
+  const contextId = "context-1";
+  const startTime = Date.now();
+  const { beforeRequestSentEvent, domContentLoadedEvent, loadEvent, responseCompletedEvent } =
+    getMockEvents(startTime, { contextId });
+
+  const events = [
+    beforeRequestSentEvent,
+    responseCompletedEvent,
+    domContentLoadedEvent,
+    loadEvent,
+  ];
+
+  class MockDriverWithPartialFailure extends MockDriverWithBodyData {
+    async send(command) {
+      if (command.method === "network.getData" && command.params.dataType === "request") {
+        return {
+          type: "error",
+          message: "Request data not available",
+        };
+      }
+      return super.send(command);
+    }
+  }
+
+  const mockDriver = new MockDriverWithPartialFailure();
+  const recorder = new adapters.SeleniumBiDiHarRecorder({
+    driver: mockDriver,
+    browsingContextIds: [contextId],
+  });
+
+  await recorder.startRecording();
+
+  for (const event of events) {
+    await mockDriver._mockEmitEvent(event);
+  }
+
+  const harExport = await recorder.stopRecording();
+
+  expect(harExport.log.entries).toHaveLength(1);
+  expect(harExport.log.entries[0].request.postData).toBeUndefined();
+  expect(harExport.log.entries[0].response.content.text).toBe("<html><body>Test Response</body></html>");
+  expect(harExport.log.entries[0].response.content.encoding).toBe("");
+});
