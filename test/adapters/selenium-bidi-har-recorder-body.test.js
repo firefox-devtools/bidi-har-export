@@ -61,26 +61,50 @@ class MockDriverWithBodyData {
     this._commandCalls.push(command.method);
 
     if (command.method === "network.addDataCollector") {
-      return { result: {} };
+      return {
+        type: "success",
+        result: {
+          dataCollector: "test-collector-id-123",
+        },
+      };
     }
 
     if (command.method === "network.removeDataCollector") {
-      return { result: {} };
+      if (command.params.dataCollector !== "test-collector-id-123") {
+        return {
+          type: "error",
+          error: "invalid data collector id",
+        };
+      }
+      return { type: "success", result: {} };
     }
 
     if (command.method === "network.getData") {
-      return {
-        result: {
-          request: {
-            type: "string",
-            value: '{"test":"request"}',
+      const dataType = command.params.dataType;
+
+      if (dataType === "request") {
+        return {
+          type: "success",
+          result: {
+            data: {
+              type: "string",
+              value: '{"test":"request"}',
+            },
           },
-          response: {
-            type: "string",
-            value: "<html><body>Test Response</body></html>",
+        };
+      }
+
+      if (dataType === "response") {
+        return {
+          type: "success",
+          result: {
+            data: {
+              type: "string",
+              value: "<html><body>Test Response</body></html>",
+            },
           },
-        },
-      };
+        };
+      }
     }
 
     throw new Error("Unsupported command: " + command.method);
@@ -154,7 +178,10 @@ test("SeleniumBiDiHarRecorder handles data collector failure gracefully", async 
   class MockDriverWithFailure extends MockDriverWithBodyData {
     async send(command) {
       if (command.method === "network.addDataCollector") {
-        throw new Error("Data collector not supported");
+        return {
+          type: "error",
+          error: "Data collector not supported",
+        };
       }
       return super.send(command);
     }
@@ -195,7 +222,10 @@ test("SeleniumBiDiHarRecorder handles getData failure gracefully", async () => {
   class MockDriverWithGetDataFailure extends MockDriverWithBodyData {
     async send(command) {
       if (command.method === "network.getData") {
-        throw new Error("Request data no longer available");
+        return {
+          type: "error",
+          error: "Request data no longer available",
+        };
       }
       return super.send(command);
     }
