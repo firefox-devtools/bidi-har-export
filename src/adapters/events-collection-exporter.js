@@ -49,7 +49,8 @@ class EventsCollectionExporter {
    *     If not provided, the original header value will be used.
    */
   constructor(options) {
-    const { browser, debugLogs, events, version, headerValueFormatter } = options;
+    const { browser, debugLogs, events, version, headerValueFormatter } =
+      options;
 
     this._events = events;
     this._recorder = new HarRecorder({
