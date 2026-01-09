@@ -154,7 +154,7 @@ class SeleniumBiDiHarRecorder {
         const response = await this.bidi.send({
           method: "network.removeDataCollector",
           params: {
-            dataCollector: this._dataCollectorId,
+            collector: this._dataCollectorId,
           },
         });
 

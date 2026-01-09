@@ -24,7 +24,7 @@ class MockDriverWithBodyData extends MockDriver {
     }
 
     if (command.method === "network.removeDataCollector") {
-      if (command.params.dataCollector !== "test-collector-id-123") {
+      if (command.params.collector !== "test-collector-id-123") {
         return {
           type: "error",
           message: "invalid data collector id",
