@@ -3,58 +3,12 @@
 
 const { adapters } = require("../..");
 const { getMockEvents } = require("../resources/mock-events");
+const { MockDriver } = require("../resources/mock-driver");
 
-class MockDriverWithBodyData {
+class MockDriverWithBodyData extends MockDriver {
   constructor() {
-    this._subscribedEvents = {};
+    super();
     this._commandCalls = [];
-  }
-
-  async getBidi() {
-    return this;
-  }
-
-  async getCapabilities() {
-    return {
-      get: (capability) => {
-        switch (capability) {
-          case "browserName":
-            return "firefox";
-          case "browserVersion":
-            return "112.0a1";
-          default:
-            throw new Error("Unsupported capability: " + capability);
-        }
-      },
-    };
-  }
-
-  get socket() {
-    return Promise.resolve(this);
-  }
-
-  subscribe(event, contextIds) {
-    this._subscribedEvents[event] = true;
-  }
-
-  unsubscribe(event, contextIds) {
-    delete this._subscribedEvents[event];
-  }
-
-  off(eventName, callback) {
-    if (eventName !== "message") {
-      throw new Error("Unsupported eventName for MockDriver: " + eventName);
-    }
-    if (callback === this._onMessage) {
-      delete this._onMessage;
-    }
-  }
-
-  on(eventName, callback) {
-    if (eventName !== "message") {
-      throw new Error("Unsupported eventName for MockDriver: " + eventName);
-    }
-    this._onMessage = callback;
   }
 
   async send(command) {
@@ -109,23 +63,17 @@ class MockDriverWithBodyData {
 
     throw new Error("Unsupported command: " + command.method);
   }
-
-  _mockEmitEvent(event) {
-    if (this._subscribedEvents[event.method]) {
-      this._onMessage({
-        toString: () => {
-          return JSON.stringify(event);
-        },
-      });
-    }
-  }
 }
 
 test("SeleniumBiDiHarRecorder collects body data", async () => {
   const contextId = "context-1";
   const startTime = Date.now();
-  const { beforeRequestSentEvent, domContentLoadedEvent, loadEvent, responseCompletedEvent } =
-    getMockEvents(startTime, { contextId });
+  const {
+    beforeRequestSentEvent,
+    domContentLoadedEvent,
+    loadEvent,
+    responseCompletedEvent,
+  } = getMockEvents(startTime, { contextId });
 
   const events = [
     beforeRequestSentEvent,
@@ -155,18 +103,24 @@ test("SeleniumBiDiHarRecorder collects body data", async () => {
 
   expect(harExport.log.entries).toHaveLength(1);
   expect(harExport.log.entries[0].response.content.text).toBe(
-    "<html><body>Test Response</body></html>"
+    "<html><body>Test Response</body></html>",
   );
   expect(harExport.log.entries[0].response.content.encoding).toBe("");
   expect(harExport.log.entries[0].request.postData).toBeDefined();
-  expect(harExport.log.entries[0].request.postData.text).toBe('{"test":"request"}');
+  expect(harExport.log.entries[0].request.postData.text).toBe(
+    '{"test":"request"}',
+  );
 });
 
 test("SeleniumBiDiHarRecorder handles data collector failure gracefully", async () => {
   const contextId = "context-1";
   const startTime = Date.now();
-  const { beforeRequestSentEvent, domContentLoadedEvent, loadEvent, responseCompletedEvent } =
-    getMockEvents(startTime, { contextId });
+  const {
+    beforeRequestSentEvent,
+    domContentLoadedEvent,
+    loadEvent,
+    responseCompletedEvent,
+  } = getMockEvents(startTime, { contextId });
 
   const events = [
     beforeRequestSentEvent,
@@ -209,8 +163,12 @@ test("SeleniumBiDiHarRecorder handles data collector failure gracefully", async 
 test("SeleniumBiDiHarRecorder handles getData failure gracefully", async () => {
   const contextId = "context-1";
   const startTime = Date.now();
-  const { beforeRequestSentEvent, domContentLoadedEvent, loadEvent, responseCompletedEvent } =
-    getMockEvents(startTime, { contextId });
+  const {
+    beforeRequestSentEvent,
+    domContentLoadedEvent,
+    loadEvent,
+    responseCompletedEvent,
+  } = getMockEvents(startTime, { contextId });
 
   const events = [
     beforeRequestSentEvent,
@@ -253,8 +211,12 @@ test("SeleniumBiDiHarRecorder handles getData failure gracefully", async () => {
 test("SeleniumBiDiHarRecorder handles partial getData failure - request succeeds, response fails", async () => {
   const contextId = "context-1";
   const startTime = Date.now();
-  const { beforeRequestSentEvent, domContentLoadedEvent, loadEvent, responseCompletedEvent } =
-    getMockEvents(startTime, { contextId });
+  const {
+    beforeRequestSentEvent,
+    domContentLoadedEvent,
+    loadEvent,
+    responseCompletedEvent,
+  } = getMockEvents(startTime, { contextId });
 
   const events = [
     beforeRequestSentEvent,
@@ -265,7 +227,10 @@ test("SeleniumBiDiHarRecorder handles partial getData failure - request succeeds
 
   class MockDriverWithPartialFailure extends MockDriverWithBodyData {
     async send(command) {
-      if (command.method === "network.getData" && command.params.dataType === "response") {
+      if (
+        command.method === "network.getData" &&
+        command.params.dataType === "response"
+      ) {
         return {
           type: "error",
           message: "Response data not available",
@@ -291,15 +256,21 @@ test("SeleniumBiDiHarRecorder handles partial getData failure - request succeeds
 
   expect(harExport.log.entries).toHaveLength(1);
   expect(harExport.log.entries[0].request.postData).toBeDefined();
-  expect(harExport.log.entries[0].request.postData.text).toBe('{"test":"request"}');
+  expect(harExport.log.entries[0].request.postData.text).toBe(
+    '{"test":"request"}',
+  );
   expect(harExport.log.entries[0].response.content.text).toBe("");
 });
 
 test("SeleniumBiDiHarRecorder handles partial getData failure - response succeeds, request fails", async () => {
   const contextId = "context-1";
   const startTime = Date.now();
-  const { beforeRequestSentEvent, domContentLoadedEvent, loadEvent, responseCompletedEvent } =
-    getMockEvents(startTime, { contextId });
+  const {
+    beforeRequestSentEvent,
+    domContentLoadedEvent,
+    loadEvent,
+    responseCompletedEvent,
+  } = getMockEvents(startTime, { contextId });
 
   const events = [
     beforeRequestSentEvent,
@@ -310,7 +281,10 @@ test("SeleniumBiDiHarRecorder handles partial getData failure - response succeed
 
   class MockDriverWithPartialFailure extends MockDriverWithBodyData {
     async send(command) {
-      if (command.method === "network.getData" && command.params.dataType === "request") {
+      if (
+        command.method === "network.getData" &&
+        command.params.dataType === "request"
+      ) {
         return {
           type: "error",
           message: "Request data not available",
@@ -336,6 +310,45 @@ test("SeleniumBiDiHarRecorder handles partial getData failure - response succeed
 
   expect(harExport.log.entries).toHaveLength(1);
   expect(harExport.log.entries[0].request.postData).toBeUndefined();
-  expect(harExport.log.entries[0].response.content.text).toBe("<html><body>Test Response</body></html>");
+  expect(harExport.log.entries[0].response.content.text).toBe(
+    "<html><body>Test Response</body></html>",
+  );
   expect(harExport.log.entries[0].response.content.encoding).toBe("");
+});
+
+test("SeleniumBiDiHarRecorder supports maxBodySize parameter", async () => {
+  const contextId = "context-1";
+
+  let maxEncodedDataSizeParameter;
+  class MockDriverWithMaxEncodedDataSizeCheck extends MockDriverWithBodyData {
+    async send(command) {
+      if (command.method === "network.addDataCollector") {
+        maxEncodedDataSizeParameter = command.params.maxEncodedDataSize;
+      }
+      return super.send(command);
+    }
+  }
+  const mockDriver = new MockDriverWithMaxEncodedDataSizeCheck();
+
+  const defaultMaxBodySize = 10485760;
+  const customMaxBodySize = 12000;
+
+  const recorderWithDefaultMaxBodySize = new adapters.SeleniumBiDiHarRecorder({
+    driver: mockDriver,
+    browsingContextIds: [contextId],
+  });
+
+  await recorderWithDefaultMaxBodySize.startRecording();
+  await recorderWithDefaultMaxBodySize.stopRecording();
+  expect(maxEncodedDataSizeParameter).toBe(defaultMaxBodySize);
+
+  const recorderWithCustomMaxBodySize = new adapters.SeleniumBiDiHarRecorder({
+    driver: mockDriver,
+    browsingContextIds: [contextId],
+    maxBodySize: customMaxBodySize,
+  });
+
+  await recorderWithCustomMaxBodySize.startRecording();
+  await recorderWithCustomMaxBodySize.stopRecording();
+  expect(maxEncodedDataSizeParameter).toBe(customMaxBodySize);
 });
