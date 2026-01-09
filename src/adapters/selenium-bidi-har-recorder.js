@@ -86,13 +86,13 @@ class SeleniumBiDiHarRecorder {
       this._dataCollectorActive = true;
       if (this._debugLogs) {
         console.log(
-          `[SeleniumBiDiHarRecorder] Data collector activated: ${this._dataCollectorId}`
+          `[SeleniumBiDiHarRecorder] Data collector activated: ${this._dataCollectorId}`,
         );
       }
     } catch (e) {
       console.warn(
         "[SeleniumBiDiHarRecorder] Failed to activate data collector, body content will not be available",
-        e.message
+        e.message,
       );
       this._dataCollectorActive = false;
       this._dataCollectorId = null;
@@ -163,7 +163,9 @@ class SeleniumBiDiHarRecorder {
         });
 
         if (this._isBiDiError(response)) {
-          throw new Error(response.message || "Failed to remove data collector");
+          throw new Error(
+            response.message || "Failed to remove data collector",
+          );
         }
 
         if (this._debugLogs) {
@@ -172,7 +174,7 @@ class SeleniumBiDiHarRecorder {
       } catch (e) {
         console.warn(
           "[SeleniumBiDiHarRecorder] Failed to deactivate data collector",
-          e.message
+          e.message,
         );
       }
       this._dataCollectorActive = false;
@@ -254,7 +256,7 @@ class SeleniumBiDiHarRecorder {
       if (this._isBiDiError(requestResponse)) {
         if (this._debugLogs) {
           console.log(
-            `[SeleniumBiDiHarRecorder] network.getData for request body failed (${requestId}): ${requestResponse.message || "unknown error"}`
+            `[SeleniumBiDiHarRecorder] network.getData for request body failed (${requestId}): ${requestResponse.message || "unknown error"}`,
           );
         }
       }
@@ -262,7 +264,7 @@ class SeleniumBiDiHarRecorder {
       if (this._isBiDiError(responseResponse)) {
         if (this._debugLogs) {
           console.log(
-            `[SeleniumBiDiHarRecorder] network.getData for response body failed (${requestId}): ${responseResponse.message || "unknown error"}`
+            `[SeleniumBiDiHarRecorder] network.getData for response body failed (${requestId}): ${responseResponse.message || "unknown error"}`,
           );
         }
       }
@@ -285,7 +287,7 @@ class SeleniumBiDiHarRecorder {
     } catch (e) {
       if (this._debugLogs) {
         console.log(
-          `[SeleniumBiDiHarRecorder] network.getData failed for ${requestId}: ${e.message}`
+          `[SeleniumBiDiHarRecorder] network.getData failed for ${requestId}: ${e.message}`,
         );
       }
       return null;
@@ -310,7 +312,7 @@ class SeleniumBiDiHarRecorder {
       } catch (e) {
         if (this._debugLogs) {
           console.log(
-            `[SeleniumBiDiHarRecorder] Failed to fetch body data for request ${params.request.request}: ${e.message}`
+            `[SeleniumBiDiHarRecorder] Failed to fetch body data for request ${params.request.request}: ${e.message}`,
           );
         }
       }
