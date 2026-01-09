@@ -84,15 +84,11 @@ class SeleniumBiDiHarRecorder {
       }
 
       this._dataCollectorActive = true;
-      if (this._debugLogs) {
-        console.log(
-          `[SeleniumBiDiHarRecorder] Data collector activated: ${this._dataCollectorId}`,
-        );
-      }
+      this._logMessage(`Data collector activated: ${this._dataCollectorId}`);
     } catch (e) {
-      console.warn(
-        "[SeleniumBiDiHarRecorder] Failed to activate data collector, body content will not be available",
-        e.message,
+      this._logMessage(
+        `Failed to activate data collector, body content will not be available: ${e.message}`,
+        "warn",
       );
       this._dataCollectorActive = false;
       this._dataCollectorId = null;
@@ -168,13 +164,13 @@ class SeleniumBiDiHarRecorder {
           );
         }
 
-        if (this._debugLogs) {
-          console.log("[SeleniumBiDiHarRecorder] Data collector deactivated");
-        }
+        this._logMessage(
+          `Data collector deactivated: ${this._dataCollectorId}`,
+        );
       } catch (e) {
-        console.warn(
-          "[SeleniumBiDiHarRecorder] Failed to deactivate data collector",
-          e.message,
+        this._logMessage(
+          `Failed to deactivate data collector: ${e.message}`,
+          "warn",
         );
       }
       this._dataCollectorActive = false;
@@ -186,6 +182,67 @@ class SeleniumBiDiHarRecorder {
       return this._recorder.stopRecording(lastPageUrl);
     } catch (e) {
       console.error("Failed to generate HAR recording", e.message);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch body data for a given request using network.getData
+   *
+   * @param {string} requestId
+   *     The BiDi request ID
+   * @returns {Promise<Object|null>}
+   *     Body data object or null if unavailable
+   * @private
+   */
+  async _fetchBodyData(requestId) {
+    try {
+      const [requestResponse, responseResponse] = await Promise.all([
+        this.bidi.send({
+          method: "network.getData",
+          params: {
+            request: requestId,
+            dataType: "request",
+          },
+        }),
+        this.bidi.send({
+          method: "network.getData",
+          params: {
+            request: requestId,
+            dataType: "response",
+          },
+        }),
+      ]);
+
+      if (this._isBiDiError(requestResponse)) {
+        this._logMessage(
+          `network.getData for request body failed (${requestId}): ${requestResponse.message || "unknown error"}`,
+        );
+      }
+
+      if (this._isBiDiError(responseResponse)) {
+        this._logMessage(
+          `network.getData for response body failed (${requestId}): ${responseResponse.message || "unknown error"}`,
+        );
+      }
+
+      if (
+        this._isBiDiError(requestResponse) &&
+        this._isBiDiError(responseResponse)
+      ) {
+        return null;
+      }
+
+      return {
+        requestBody: this._isBiDiError(requestResponse)
+          ? null
+          : requestResponse.result?.bytes,
+        responseBody: this._isBiDiError(responseResponse)
+          ? null
+          : responseResponse.result?.bytes,
+      };
+    } catch (e) {
+      this._logMessage(`network.getData failed for ${requestId}: ${e.message}`);
       return null;
     }
   }
@@ -226,72 +283,22 @@ class SeleniumBiDiHarRecorder {
   }
 
   /**
-   * Fetch body data for a given request using network.getData
+   * Print a message to the console with the provided console method.
    *
-   * @param {string} requestId
-   *     The BiDi request ID
-   * @returns {Promise<Object|null>}
-   *     Body data object or null if unavailable
-   * @private
+   * For "log" level messages, they will only be actually logged if debugLogs
+   * are enabled.
+   *
+   * @param {string} message
+   *     The message to log.
+   * @param {string=} consoleMethod
+   *     The name of the console method to use (defaults to "log").
    */
-  async _fetchBodyData(requestId) {
-    try {
-      const [requestResponse, responseResponse] = await Promise.all([
-        this.bidi.send({
-          method: "network.getData",
-          params: {
-            request: requestId,
-            dataType: "request",
-          },
-        }),
-        this.bidi.send({
-          method: "network.getData",
-          params: {
-            request: requestId,
-            dataType: "response",
-          },
-        }),
-      ]);
-
-      if (this._isBiDiError(requestResponse)) {
-        if (this._debugLogs) {
-          console.log(
-            `[SeleniumBiDiHarRecorder] network.getData for request body failed (${requestId}): ${requestResponse.message || "unknown error"}`,
-          );
-        }
-      }
-
-      if (this._isBiDiError(responseResponse)) {
-        if (this._debugLogs) {
-          console.log(
-            `[SeleniumBiDiHarRecorder] network.getData for response body failed (${requestId}): ${responseResponse.message || "unknown error"}`,
-          );
-        }
-      }
-
-      if (
-        this._isBiDiError(requestResponse) &&
-        this._isBiDiError(responseResponse)
-      ) {
-        return null;
-      }
-
-      return {
-        requestBody: this._isBiDiError(requestResponse)
-          ? null
-          : requestResponse.result?.bytes,
-        responseBody: this._isBiDiError(responseResponse)
-          ? null
-          : responseResponse.result?.bytes,
-      };
-    } catch (e) {
-      if (this._debugLogs) {
-        console.log(
-          `[SeleniumBiDiHarRecorder] network.getData failed for ${requestId}: ${e.message}`,
-        );
-      }
-      return null;
+  _logMessage(message, consoleMethod = "log") {
+    if (consoleMethod == "log" && !this._debugLogs) {
+      return;
     }
+
+    console[consoleMethod](`[SeleniumBiDiHarRecorder] ${message}`);
   }
 
   async _onMessage(event) {
@@ -302,19 +309,11 @@ class SeleniumBiDiHarRecorder {
     }
 
     if (method === "network.responseCompleted" && this._dataCollectorActive) {
-      try {
-        const requestId = params.request.request;
-        const bodyData = await this._fetchBodyData(requestId);
+      const requestId = params.request.request;
+      const bodyData = await this._fetchBodyData(requestId);
 
-        if (bodyData) {
-          params._bodyData = bodyData;
-        }
-      } catch (e) {
-        if (this._debugLogs) {
-          console.log(
-            `[SeleniumBiDiHarRecorder] Failed to fetch body data for request ${params.request.request}: ${e.message}`,
-          );
-        }
+      if (bodyData) {
+        params._bodyData = bodyData;
       }
     }
 
