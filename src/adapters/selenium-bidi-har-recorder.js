@@ -26,15 +26,22 @@ class SeleniumBiDiHarRecorder {
    *     An optional formatter function to use to format the header value.
    *     The function should take the header name and value, and return the formatted value.
    *     If not provided, the original header value will be used.
+   * @param {boolean} [options.skipBodyData=false]
+   *     Set to true to skip collecting request/response body data.
+   *     This will keep HAR files smaller and reduce overhead.
+   *     Defaults to false (body data is collected).
    * @param {number} [options.maxBodySize=10485760]
    *     Maximum size in bytes for request/response body data collection.
    *     Defaults to 10MB (10485760 bytes).
+   *     Only used when skipBodyData is false.
    * @param {number} [options.maxConcurrentGetData=3]
    *     Maximum number of concurrent getData operations.
    *     Defaults to 3.
+   *     Only used when skipBodyData is false.
    * @param {number} [options.getDataTimeout=5000]
    *     Timeout in milliseconds for each getData operation.
    *     Defaults to 5000ms (5 seconds).
+   *     Only used when skipBodyData is false.
    */
   constructor(options) {
     const {
@@ -42,6 +49,7 @@ class SeleniumBiDiHarRecorder {
       debugLogs,
       driver,
       headerValueFormatter,
+      skipBodyData = false,
       maxBodySize = 10485760,
       maxConcurrentGetData = 3,
       getDataTimeout = 5000,
@@ -51,6 +59,7 @@ class SeleniumBiDiHarRecorder {
     this._debugLogs = debugLogs || false;
     this._driver = driver;
     this._headerValueFormatter = headerValueFormatter;
+    this._skipBodyData = skipBodyData;
     this._maxBodySize = maxBodySize;
     this._dataCollectorActive = false;
     this._dataCollectorId = null;
@@ -78,34 +87,36 @@ class SeleniumBiDiHarRecorder {
 
     this.bidi = await this._driver.getBidi();
 
-    try {
-      const response = await this.bidi.send({
-        method: "network.addDataCollector",
-        params: {
-          contexts: this._browsingContextIds,
-          dataTypes: ["request", "response"],
-          maxEncodedDataSize: this._maxBodySize,
-        },
-      });
+    if (!this._skipBodyData) {
+      try {
+        const response = await this.bidi.send({
+          method: "network.addDataCollector",
+          params: {
+            contexts: this._browsingContextIds,
+            dataTypes: ["request", "response"],
+            maxEncodedDataSize: this._maxBodySize,
+          },
+        });
 
-      if (this._isBiDiError(response)) {
-        throw new Error(response.message || "Failed to add data collector");
+        if (this._isBiDiError(response)) {
+          throw new Error(response.message || "Failed to add data collector");
+        }
+
+        this._dataCollectorId = response.result?.collector;
+        if (!this._dataCollectorId) {
+          throw new Error("No data collector ID returned");
+        }
+
+        this._dataCollectorActive = true;
+        this._logMessage(`Data collector activated: ${this._dataCollectorId}`);
+      } catch (e) {
+        this._logMessage(
+          `Failed to activate data collector, body content will not be available: ${e.message}`,
+          "warn",
+        );
+        this._dataCollectorActive = false;
+        this._dataCollectorId = null;
       }
-
-      this._dataCollectorId = response.result?.collector;
-      if (!this._dataCollectorId) {
-        throw new Error("No data collector ID returned");
-      }
-
-      this._dataCollectorActive = true;
-      this._logMessage(`Data collector activated: ${this._dataCollectorId}`);
-    } catch (e) {
-      this._logMessage(
-        `Failed to activate data collector, body content will not be available: ${e.message}`,
-        "warn",
-      );
-      this._dataCollectorActive = false;
-      this._dataCollectorId = null;
     }
 
     await this.bidi.subscribe(
