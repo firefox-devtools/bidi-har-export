@@ -577,3 +577,58 @@ test("SeleniumBiDiHarRecorder waits for pending getData before stopping", async 
     "<html><body>Test Response</body></html>",
   );
 });
+
+test("SeleniumBiDiHarRecorder skips body data collection when skipBodyData is true", async () => {
+  const contextId = "context-1";
+  const startTime = Date.now();
+  const {
+    beforeRequestSentEvent,
+    domContentLoadedEvent,
+    loadEvent,
+    responseCompletedEvent,
+  } = getMockEvents(startTime, { contextId });
+
+  const events = [
+    beforeRequestSentEvent,
+    responseCompletedEvent,
+    domContentLoadedEvent,
+    loadEvent,
+  ];
+
+  const commandCalls = [];
+
+  class MockDriverWithCommandTracking extends MockDriverWithBodyData {
+    async send(command) {
+      commandCalls.push(command.method);
+      return super.send(command);
+    }
+  }
+
+  const mockDriver = new MockDriverWithCommandTracking();
+  const recorder = new adapters.SeleniumBiDiHarRecorder({
+    driver: mockDriver,
+    browsingContextIds: [contextId],
+    skipBodyData: true,
+  });
+
+  await recorder.startRecording();
+
+  for (const event of events) {
+    await mockDriver._mockEmitEvent(event);
+  }
+
+  const harExport = await recorder.stopRecording();
+
+  // addDataCollector should NOT have been called
+  expect(commandCalls).not.toContain("network.addDataCollector");
+  // getData should NOT have been called
+  expect(commandCalls).not.toContain("network.getData");
+  // removeDataCollector should NOT have been called
+  expect(commandCalls).not.toContain("network.removeDataCollector");
+
+  // HAR export should still work
+  expect(harExport.log.entries).toHaveLength(1);
+  // But body data should not be present
+  expect(harExport.log.entries[0].response.content.text).toBe("");
+  expect(harExport.log.entries[0].request.postData).toBeUndefined();
+});
