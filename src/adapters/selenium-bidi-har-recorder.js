@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const HarRecorder = require("../har-recorder");
+const TaskQueue = require("../task-queue");
 
 /**
  * This recording can be used in combination with a selenium node driver and
@@ -28,6 +29,12 @@ class SeleniumBiDiHarRecorder {
    * @param {number} [options.maxBodySize=10485760]
    *     Maximum size in bytes for request/response body data collection.
    *     Defaults to 10MB (10485760 bytes).
+   * @param {number} [options.maxConcurrentGetData=3]
+   *     Maximum number of concurrent getData operations.
+   *     Defaults to 3.
+   * @param {number} [options.getDataTimeout=5000]
+   *     Timeout in milliseconds for each getData operation.
+   *     Defaults to 5000ms (5 seconds).
    */
   constructor(options) {
     const {
@@ -36,6 +43,8 @@ class SeleniumBiDiHarRecorder {
       driver,
       headerValueFormatter,
       maxBodySize = 10485760,
+      maxConcurrentGetData = 3,
+      getDataTimeout = 5000,
     } = options;
 
     this._browsingContextIds = browsingContextIds;
@@ -45,6 +54,11 @@ class SeleniumBiDiHarRecorder {
     this._maxBodySize = maxBodySize;
     this._dataCollectorActive = false;
     this._dataCollectorId = null;
+
+    this._getDataQueue = new TaskQueue({
+      maxConcurrent: maxConcurrentGetData,
+      timeout: getDataTimeout,
+    });
 
     this._onMessage = this._onMessage.bind(this);
   }
@@ -150,6 +164,9 @@ class SeleniumBiDiHarRecorder {
     );
 
     if (this._dataCollectorActive && this._dataCollectorId) {
+      // Wait for all pending getData operations to complete
+      await this._getDataQueue.drain();
+
       try {
         const response = await this.bidi.send({
           method: "network.removeDataCollector",
@@ -310,10 +327,28 @@ class SeleniumBiDiHarRecorder {
 
     if (method === "network.responseCompleted" && this._dataCollectorActive) {
       const requestId = params.request.request;
-      const bodyData = await this._fetchBodyData(requestId);
+      const status = params.response?.status;
 
-      if (bodyData) {
-        params._bodyData = bodyData;
+      // Check if this is a redirect response
+      const isRedirect = status >= 300 && status < 400;
+
+      if (isRedirect) {
+        this._logMessage(
+          `Skipping getData for redirect response (status ${status})`,
+        );
+      } else {
+        // Queue the getData operation with concurrency control and timeout
+        try {
+          const bodyData = await this._getDataQueue.queue(() =>
+            this._fetchBodyData(requestId),
+          );
+
+          if (bodyData) {
+            params._bodyData = bodyData;
+          }
+        } catch (err) {
+          // Task timed out or failed - already logged by _fetchBodyData
+        }
       }
     }
 
