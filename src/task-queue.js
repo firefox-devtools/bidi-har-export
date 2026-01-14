@@ -95,10 +95,13 @@ class TaskQueue {
         ),
       ]);
 
-      taskWithTimeout
-        .then((result) => resolve(result))
-        .catch((err) => reject(err))
-        .finally(() => {
+      (async () => {
+        try {
+          result = await taskWithTimeout;
+          resolve(result);
+        } catch (e) {
+          reject(e);
+        } finally {
           this.#activeTasks--;
           this.#process();
           clearTimeout(timer);
@@ -112,7 +115,8 @@ class TaskQueue {
             this.#drainResolve = null;
             this.#drainPromise = null;
           }
-        });
+        }
+      })();
     }
   }
 }
