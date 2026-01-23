@@ -15,13 +15,6 @@ test("SeleniumBiDiHarRecorder generates simple har export", async () => {
     responseCompletedEvent,
   } = getMockEvents(startTime, { contextId });
 
-  const events = [
-    beforeRequestSentEvent,
-    domContentLoadedEvent,
-    loadEvent,
-    responseCompletedEvent,
-  ];
-
   const driver = new MockDriver();
   const recorder = new adapters.SeleniumBiDiHarRecorder({
     browsingContextIds: [contextId],
