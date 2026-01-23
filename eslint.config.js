@@ -28,6 +28,10 @@ module.exports = [
     },
     rules: {
       ...jest.configs.recommended.rules,
+      "jest/expect-expect": [
+        "error",
+        { assertFunctionNames: ["expect", "test*"] },
+      ],
     },
   },
   {

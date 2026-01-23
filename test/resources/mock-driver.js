@@ -29,11 +29,11 @@ class MockDriver {
     return Promise.resolve(this);
   }
 
-  subscribe(event, contextIds) {
+  subscribe(event, _contextIds) {
     this._subscribedEvents[event] = true;
   }
 
-  unsubscribe(event, contextIds) {
+  unsubscribe(event, _contextIds) {
     delete this._subscribedEvents[event];
   }
 

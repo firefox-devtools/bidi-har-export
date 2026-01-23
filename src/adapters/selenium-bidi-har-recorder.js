@@ -289,7 +289,7 @@ class SeleniumBiDiHarRecorder {
 
         const response = await this.bidi.send(params);
         pageUrl = response.result.contexts[0].url;
-      } catch (e) {
+      } catch {
         // Could not fetch page url.
       }
     }
@@ -357,7 +357,7 @@ class SeleniumBiDiHarRecorder {
           if (bodyData) {
             params._bodyData = bodyData;
           }
-        } catch (err) {
+        } catch {
           // Task timed out or failed - already logged by _fetchBodyData
         }
       }
