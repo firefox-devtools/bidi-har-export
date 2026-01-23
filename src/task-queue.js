@@ -97,7 +97,7 @@ class TaskQueue {
 
       (async () => {
         try {
-          result = await taskWithTimeout;
+          const result = await taskWithTimeout;
           resolve(result);
         } catch (e) {
           reject(e);
