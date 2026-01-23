@@ -38,7 +38,11 @@ class TaskQueue {
    *     times out or fails.
    */
   queue(taskFn) {
-    const { promise, resolve, reject } = Promise.withResolvers();
+    let resolve, reject;
+    const promise = new Promise((_resolve, _reject) => {
+      reject = _reject;
+      resolve = _resolve;
+    });
 
     this.#queue.push({
       taskFn,
@@ -63,7 +67,10 @@ class TaskQueue {
     }
 
     if (!this.#drainPromise) {
-      const { promise, resolve } = Promise.withResolvers();
+      let resolve;
+      const promise = new Promise((_resolve) => {
+        resolve = _resolve;
+      });
       this.#drainPromise = promise;
       this.#drainResolve = resolve;
     }
